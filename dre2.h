@@ -75,14 +75,6 @@ dre2_node {
 };
 
 struct
-dre2_factor {
-  int *nodes;                    // Nodes in this factor.
-  int n_count;                   // Number of nodes that must be searched from.
-  unsigned char possible[RANGE]; // Possible characters.
-  int p_count;                   // Number of possible characters.
-};
-
-struct
 dre2_range_return {
   int min;                       // Min size.
   int max;                       // Max size.
@@ -117,6 +109,15 @@ dre2 {
 
 
 // Function definitions.
+int dre2_char_matches( struct dre2_node *node, unsigned char c );
+unsigned char * dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length );
+int dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length );
+int dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length );
+int dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length );
+int dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length );
+int dre2_mn( struct dre2 *graph, unsigned char *input, int length );
+int dre2_match( struct dre2 *graph, unsigned char *input );
+unsigned char * dre2_escaped( unsigned char *re );
 int dre2_binsearch( int *values, int min, int max, int key );
 int dre2_largest( int *values, int length );
 int dre2_contains_int( int *values, int length, int key );
@@ -130,12 +131,16 @@ void cleanup_dre2( struct dre2 *graph );
 void dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct dre2_path **paths );
 int dre2_node_cost( struct dre2 *graph, int id );
 int dre2_best_choice( struct dre2 *graph, int *required, int count );
+void dre2_set_chars( struct dre2 *graph, int id );
+void dre2_starting_chars( struct dre2 *graph, int *minimal );
 int dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int minimal_count );
 void dre2_min_reachable( struct dre2 *graph, int **reachable, int **visited, int id );
 void dre2_reachable( struct dre2 *graph, int **reachable, int **visited, int id );
-void dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, int *minimal, int **new_minimal, int *new_minimal_count, int **minimal_id );
+void dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node **new_nodes, int *minimal, int **new_minimal, int *new_minimal_count, int **minimal_id );
+struct dre2_cost dre2_single_cost( struct dre2 *graph, int id );
 struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal );
-int dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost * );
+int dre2_use_paths( struct dre2 *graph, int best, struct dre2_fl_cost *cost );
+int dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost *cost );
 void dre2_remove_minimal( int **minimal, int id );
 void dre2_add_minimal( int **minimal, int *node_count );
 void dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal );
@@ -149,12 +154,3 @@ struct dre2_parse_return dre2_parse_recursive( struct dre2_node **v, int *node_c
 struct dre2 dre2_parse( unsigned char *re );
 void print_dre2( struct dre2 *graph );
 void print_reverse_dre2( struct dre2 *graph );
-int dre2_char_matches( struct dre2_node *node, unsigned char c );
-unsigned char *dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length );
-int dre2_mn_mc( struct dre2 *graph, unsigned char *input, int length );
-int dre2_mn_sc( struct dre2 *graph, unsigned char *input, int length );
-int dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length );
-int dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length );
-int dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length );
-int dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length );
-int dre2_match( struct dre2 *graph, unsigned char *input );
