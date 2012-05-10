@@ -10,6 +10,11 @@ main( int argc, char *argv[] )
   }
   struct dre2 graph;
   graph = dre2_parse( ( unsigned char * )argv[1] );
+  if ( graph.v == NULL )
+  {
+    printf( "Failed to parse!\n" );
+    return 0;
+  }
 
   char *buf;
   buf = ( unsigned char * )calloc( 0x10000, 1 );
