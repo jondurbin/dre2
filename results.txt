@@ -1,0 +1,179 @@
+Regex: Tom.{0,30}river|river.{0,30}Tom
+====================================
+dre2:
+Matched: 4
+Time   : 0.156s
+
+re2:
+Matched: 4
+Time   : 0.152s
+
+egrep:
+Matched: 4
+Time   : 0.036s
+
+perl:
+Matched: 4
+Time   : 0.293s
+
+Regex: "[^"]{0,30}[?!.]"
+====================================
+dre2:
+Matched: 5546
+Time   : 0.063s
+
+re2:
+Matched: 5540
+Time   : 0.091s
+
+egrep:
+Matched: 5540
+Time   : 0.458s
+
+perl:
+Matched: 5546
+Time   : 0.222s
+
+Regex: ([A-Za-z]awyer|[A-Za-z]inn)[^a-zA-Z]
+====================================
+dre2:
+Matched: 639
+Time   : 0.233s
+
+re2:
+Matched: 639
+Time   : 0.155s
+
+egrep:
+Matched: 639
+Time   : 2.728s
+
+perl:
+Matched: 639
+Time   : 2.203s
+
+Regex: ([a-f](.[d-m].){0,2}[h-n]){2}
+====================================
+dre2:
+Matched: 61719
+Time   : 0.516s
+
+re2:
+Matched: 61719
+Time   : 0.172s
+
+egrep:
+Matched: 61719
+Time   : 2.895s
+
+perl:
+Matched: 61719
+Time   : 1.157s
+
+Regex: [a-zA-Z]{0,4}ing[^a-zA-Z]
+====================================
+dre2:
+Matched: 73803
+Time   : 0.079s
+
+re2:
+Matched: 73803
+Time   : 0.152s
+
+egrep:
+Matched: 73803
+Time   : 0.766s
+
+perl:
+Matched: 73803
+Time   : 0.240s
+
+Regex: [a-zA-Z]+ing
+====================================
+dre2:
+Matched: 81350
+Time   : 0.072s
+
+re2:
+Matched: 81350
+Time   : 0.163s
+
+egrep:
+Matched: 81350
+Time   : 0.566s
+
+perl:
+Matched: 81350
+Time   : 0.278s
+
+Regex: .{0,3}(Tom|Sawyer|Huckleberry|Finn)
+====================================
+dre2:
+Matched: 2644
+Time   : 0.116s
+
+re2:
+Matched: 2644
+Time   : 0.155s
+
+egrep:
+Matched: 2644
+Time   : 0.084s
+
+perl:
+Matched: 2644
+Time   : 3.195s
+
+Regex: Tom|Sawyer|Huckleberry|Finn
+====================================
+dre2:
+Matched: 2644
+Time   : 0.111s
+
+re2:
+Matched: 2644
+Time   : 0.168s
+
+egrep:
+Matched: 2644
+Time   : 0.089s
+
+perl:
+Matched: 2644
+Time   : 0.280s
+
+Regex: Huck[a-zA-Z]+|Finn[a-zA-Z]+
+====================================
+dre2:
+Matched: 83
+Time   : 0.101s
+
+re2:
+Matched: 83
+Time   : 0.154s
+
+egrep:
+Matched: 83
+Time   : 0.596s
+
+perl:
+Matched: 83
+Time   : 0.263s
+
+Regex: Twain
+====================================
+dre2:
+Matched: 2373
+Time   : 0.041s
+
+re2:
+Matched: 2373
+Time   : 0.085s
+
+egrep:
+Matched: 2373
+Time   : 0.031s
+
+perl:
+Matched: 2373
+Time   : 0.191s
