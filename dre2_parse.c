@@ -2121,7 +2121,7 @@ dre2_parse( unsigned char *re )
     min_graph.starting_point = 0;
   if ( min_graph.starting_point == min_graph.count - 2 )
     min_graph.starting_point = min_graph.count - 1;
-  dre2_starting_chars( &min_graph, minimal );
+  dre2_starting_chars( &min_graph, new_minimal );
 
   // Clean up the original graph's memory.
   cleanup_dre2( &graph );
