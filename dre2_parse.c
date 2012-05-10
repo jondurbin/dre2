@@ -36,6 +36,64 @@ const int dre2_frequency[RANGE] = {
  123, 124, 126, 127, 128, 129, 130, 131
 };
 
+// Create an escaped string, optionally with skip-matching.
+unsigned char *
+dre2_escaped( unsigned char *re )
+{
+  unsigned char *buffer, *escaped, *ptr;
+  int length;
+  int skip_match;
+
+  if ( *re == '!' )
+    skip_match = false;
+  else
+    skip_match = true;
+
+  length = strlen( re );
+  if ( skip_match )
+    length = length * 3 + 1;
+  else
+    length = length * 2 + 1;
+
+  escaped = ( unsigned char * )calloc( length, sizeof( unsigned char ) );
+  buffer = escaped;
+
+  ptr = re;
+  while ( *ptr )
+  {
+    switch ( *ptr )
+    {
+      case '(':
+      case ')':
+      case '\\':
+      case '.':
+      case '*':
+      case '+':
+      case '{':
+      case '}':
+      case '[':
+      case ']':
+      case '|':
+        *buffer++ = '\\';
+        *buffer++ = *ptr;
+        break;
+      case '?':
+        *buffer++ = '.';
+        break;
+      default:
+        *buffer++ = *ptr;
+    }
+    if ( skip_match )
+    {
+       *buffer++ = '.';
+       *buffer++ = '?';
+    }
+    *ptr++;
+  }
+  *buffer = '\0';
+  return escaped;
+}
+
 // Determine if a sorted array contains an item.
 int
 dre2_binsearch( int *values, int min, int max, int key )
@@ -1061,7 +1119,7 @@ dre2_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
 
 // Strip out the group open and close nodes.
 void
-dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, int *minimal, int **new_minimal, int *new_minimal_count, int **minimal_id )
+dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node **new_nodes, int *minimal, int **new_minimal, int *new_minimal_count, int **minimal_id )
 {
   int i, j, k;
   struct dre2_node *nodes, *node;
@@ -1098,10 +1156,10 @@ dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, int *minimal, int
     if ( ( graph->v[i].c != DRE2_GROUP_OPEN && graph->v[i].c != DRE2_GROUP_CLOSE ) || ( i == 0 || i == graph->count - 1 ) )
     {
       // Add node to our min tree.
-      dre2_add_node( &new_graph->v, &node_count, graph->v[i].c, &temp_minimal );
+      dre2_add_node( new_nodes, &node_count, graph->v[i].c, &temp_minimal );
 
-      new_graph->v[node_count - 1].min_n_count = 0;
-      new_graph->v[node_count - 1].min_n = NULL;
+      new_nodes[0][node_count - 1].min_n_count = 0;
+      new_nodes[0][node_count - 1].min_n = NULL;
       if ( minimal[i] )
       {
         new_minimal[0][node_count - 1] = true;
@@ -1112,20 +1170,20 @@ dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, int *minimal, int
       if ( graph->v[i].c == DRE2_CHAR_CLASS )
       {
         for ( j = 0; j < RANGE; j++ )
-          new_graph->v[node_count - 1].possible[j] = graph->v[i].possible[j];
+          new_nodes[0][node_count - 1].possible[j] = graph->v[i].possible[j];
       }
 
       // Find the reachable nodes.
       for ( j = 0; j < graph->count; j++ )
       {
         if ( reachable[j] )
-          dre2_add_neighbor( &new_graph->v, node_count - 1, j );
+          dre2_add_neighbor( new_nodes, node_count - 1, j );
         if ( min_reachable[j] && minimal[j] )
         {
-          new_graph->v[node_count - 1].min_n_count++;
-          if ( new_graph->v[node_count - 1].min_n == NULL )
-            new_graph->v[node_count - 1].min_n = ( int * )malloc( sizeof( int ) * graph->count );
-          new_graph->v[node_count - 1].min_n[new_graph->v[node_count - 1].min_n_count - 1] = j;
+          new_nodes[0][node_count - 1].min_n_count++;
+          if ( new_nodes[0][node_count - 1].min_n == NULL )
+            new_nodes[0][node_count - 1].min_n = ( int * )malloc( sizeof( int ) * graph->count );
+          new_nodes[0][node_count - 1].min_n[new_nodes[0][node_count - 1].min_n_count - 1] = j;
         }
       }
     }
@@ -1134,14 +1192,14 @@ dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, int *minimal, int
   // Update the node IDs.
   for ( i = 0; i < node_count; i++ )
   {
-    for ( j = 0; j < new_graph->v[i].n_count; j++ )
-      new_graph->v[i].n[j] = graph->v[new_graph->v[i].n[j]].min_id;
+    for ( j = 0; j < new_nodes[0][i].n_count; j++ )
+      new_nodes[0][i].n[j] = graph->v[new_nodes[0][i].n[j]].min_id;
   }
 
   for ( i = 0; i < *new_minimal_count; i++ )
   {
-    for ( j = 0; j < new_graph->v[minimal_id[0][i]].min_n_count; j++ )
-      new_graph->v[minimal_id[0][i]].min_n[j] = graph->v[new_graph->v[minimal_id[0][i]].min_n[j]].min_id;
+    for ( j = 0; j < new_nodes[0][minimal_id[0][i]].min_n_count; j++ )
+      new_nodes[0][minimal_id[0][i]].min_n[j] = graph->v[new_nodes[0][minimal_id[0][i]].min_n[j]].min_id;
   }
 
   // Setup the minimized graph.
@@ -2066,7 +2124,7 @@ struct dre2
 dre2_parse( unsigned char *re )
 {
   int i;
-  struct dre2_node *v;
+  struct dre2_node *v, *min_v;
   int node_count;
   int length;
   int *minimal, *new_minimal, minimal_count, *minimal_id;
@@ -2105,7 +2163,6 @@ dre2_parse( unsigned char *re )
   dre2_add_parents( &graph );
 
   min_graph.starting_points = NULL;
-  min_graph.v = ( struct dre2_node * )malloc( sizeof( struct dre2_node ) );
   min_graph.starting_chars = ( int * )calloc( RANGE, sizeof( int ) );
 
   new_minimal = ( int * )calloc( graph.count, sizeof( int ) );
@@ -2113,7 +2170,9 @@ dre2_parse( unsigned char *re )
   minimal_count = 0;
 
   // Strip out the group nodes and make it an epsilon-free graph.
-  dre2_strip_groups( &graph, &min_graph, minimal, &new_minimal, &minimal_count, &minimal_id );
+  min_v = NULL;
+  dre2_strip_groups( &graph, &min_graph, &min_v, minimal, &new_minimal, &minimal_count, &minimal_id );
+  min_graph.v = min_v;
 
   // Setup the reverse graph.
   dre2_add_parents( &min_graph );
