@@ -1857,6 +1857,12 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
         return ret_val;
       }
       mod = true;
+    } else if ( c == ']' || c == '}' )
+    {
+      free( option_end );
+      option_end = NULL;
+      ret_val.pos = -1;
+      return ret_val;
     } else if ( c == '\\' )
     {
       // Character class.
