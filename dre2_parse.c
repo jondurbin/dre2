@@ -2129,7 +2129,6 @@ dre2_parse( unsigned char *re )
   int length;
   int *minimal, *new_minimal, minimal_count, *minimal_id;
   struct dre2_parse_return ret;
-  struct dre2_factor factor;
   struct dre2 min_graph;
 
   // Call the recursive parse function.
