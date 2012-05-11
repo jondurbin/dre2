@@ -1,7 +1,7 @@
 ##dre2 - An extremely fast, lightweight regex engine written in pure c.
 
 ### Generating the dre2 object from a regular expresion string.
-<code>
+```c
   struct dre2 regex;
   regex = dre2_parse( regex_string );
   if ( ! graph.v )
@@ -9,7 +9,7 @@
     // Parse failure.
     printf( "Failed to parse!\n" );
   }
-</code>
+```
 
 ### Matching an input string with the dre2 object:
 ```c
@@ -21,12 +21,12 @@
 ```
 
 ### Cleanup:
-<code>
+```c
   cleanup_dre2( &graph );
-</code>
+```
 
 ### Full example:
-<code>
+```c
  #include "dre2.h"
  
  int
@@ -60,4 +60,4 @@
   free( buf );
    return 0;
  }
-</code>
+```
