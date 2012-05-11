@@ -4,7 +4,7 @@
 ```c
   struct dre2 regex;
   regex = dre2_parse( regex_string );
-  if ( ! graph.v )
+  if ( ! regex.v )
   {
     // Parse failure.
     printf( "Failed to parse!\n" );
@@ -22,7 +22,7 @@
 
 ### Cleanup:
 ```c
-  cleanup_dre2( &graph );
+  cleanup_dre2( &regex );
 ```
 
 ### Full example:
@@ -37,9 +37,9 @@
      printf( "Usage: cat file.txt | %s <regex>\n", argv[0] );
      return 0;
    }
-   struct dre2 graph;
-   graph = dre2_parse( ( unsigned char * )argv[1] );
-   if ( graph.v == NULL )
+   struct dre2 regex;
+   regex = dre2_parse( ( unsigned char * )argv[1] );
+   if ( regex.v == NULL )
    {
      printf( "Failed to parse!\n" );
      return 0;
@@ -50,13 +50,13 @@
    int count = 0;
    while ( fgets( buf, 0x10000 - 1, stdin ) )
    {
-     if ( dre2_match( &graph, buf ) )
+     if ( dre2_match( &regex, buf ) )
      {
        printf( "%s", buf );
        count++;
      }
    }
-   cleanup_dre2( &graph );
+   cleanup_dre2( &regex );
   free( buf );
    return 0;
  }
