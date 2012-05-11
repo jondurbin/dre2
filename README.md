@@ -1,6 +1,7 @@
-dre2 - An extremely fast, lightweight regex engine written in pure c.
+##dre2 - An extremely fast, lightweight regex engine written in pure c.
 
-1.) Generating the dre2 object from a regular expresion string.
+### Generating the dre2 object from a regular expresion string.
+<code>
   struct dre2 regex;
   regex = dre2_parse( regex_string );
   if ( ! graph.v )
@@ -8,18 +9,24 @@ dre2 - An extremely fast, lightweight regex engine written in pure c.
     // Parse failure.
     printf( "Failed to parse!\n" );
   }
+</code>
 
-2.) Matching an input string with the dre2 object:
+### Matching an input string with the dre2 object:
+<code>
   if ( dre2_match( &regex, input_string ) )
   {
     // Match successful.
     printf( "Match.\n" );
   }
+</code>
 
-3.) Cleanup:
+### Cleanup:
+<code>
   cleanup_dre2( &graph );
+</code>
 
-4.) Full example:
+### Full example:
+<code>
  #include "dre2.h"
  
  int
@@ -53,3 +60,4 @@ dre2 - An extremely fast, lightweight regex engine written in pure c.
   free( buf );
    return 0;
  }
+</code>
