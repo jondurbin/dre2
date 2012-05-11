@@ -12,13 +12,13 @@
 </code>
 
 ### Matching an input string with the dre2 object:
-<code>
+```c
   if ( dre2_match( &regex, input_string ) )
   {
     // Match successful.
     printf( "Match.\n" );
   }
-</code>
+```
 
 ### Cleanup:
 <code>
