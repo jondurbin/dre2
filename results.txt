@@ -49,7 +49,7 @@ Regex: Tom.{0,30}river|river.{0,30}Tom
 Engine | Matched |  Time
 --------------------------
 dre2   |    4    |  0.156s
-re2    |    4    |  0.15ss
+re2    |    4    |  0.152s
 egrep  |    4    |  0.036s  <= fastest
 perl   |    4    |  0.293s
 
