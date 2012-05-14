@@ -629,12 +629,10 @@ void
 cleanup_dre2( struct dre2 *graph )
 {
   cleanup_nodes( &graph->v, graph->count );
-  free( graph->v );
-  if ( graph->reachable != NULL ) { free( graph->reachable ); graph->reachable = NULL; }
-  if ( graph->r_temp != NULL ) { free( graph->r_temp ); graph->r_temp = NULL; }
-  if ( graph->state != NULL ) { free( graph->state ); graph->state = NULL; }
+  free( graph->v ); graph->v = NULL;
   if ( graph->starting_points != NULL ) { free( graph->starting_points ); graph->starting_points = NULL; }
-  graph->v = NULL;
+  if ( graph->starting_chars != NULL ) { free( graph->starting_chars ); graph->starting_chars = NULL; }
+  free( graph ); graph = NULL;
 }
 
 void
@@ -915,7 +913,7 @@ dre2_starting_chars( struct dre2 *graph, int *minimal )
     // Set all of the chars possible from the reachable nodes of the first node.
     for ( i = 0; i < graph->v[0].n_count; i++ )
     {
-      if ( minimal[graph->v[0].n[i]] )
+      if ( minimal[graph->v[0].n[i]] || ( graph->options | DRE2_GREEDY ) )
         dre2_set_chars( graph, graph->v[0].n[i] );
     }
   } else
@@ -923,7 +921,7 @@ dre2_starting_chars( struct dre2 *graph, int *minimal )
     // Set all of the chars possible from the parents of the last node.
     for ( i = 0; i < graph->v[graph->count - 1].p_count; i++ )
     {
-      if ( minimal[graph->v[graph->count - 1].p[i]] )
+      if ( minimal[graph->v[graph->count - 1].p[i]] || ( graph->options | DRE2_GREEDY ) )
         dre2_set_chars( graph, graph->v[graph->count - 1].p[i] );
     }
   }
@@ -979,12 +977,7 @@ dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int mini
 
   for ( i = 0; i < path_count; i++ )
   {
-    //printf( "Path %d: ", i );
-    //for ( j = 0; j < paths[i].count; j++ )
-    //  printf( "%d -> ", paths[i].nodes[j] );
-    //printf( "\n" );
     best = dre2_best_choice( graph, paths[i].nodes, paths[i].count );
-    //printf( "Best node: %d\n", best );
     if ( !dre2_contains_int( graph->starting_points, graph->starting_count, best ) )
       graph->starting_points[graph->starting_count++] = best;
   }
@@ -1156,7 +1149,7 @@ dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node 
     if ( ( graph->v[i].c != DRE2_GROUP_OPEN && graph->v[i].c != DRE2_GROUP_CLOSE ) || ( i == 0 || i == graph->count - 1 ) )
     {
       // Add node to our min tree.
-      dre2_add_node( new_nodes, &node_count, graph->v[i].c, &temp_minimal );
+      dre2_add_node( new_nodes, &node_count, graph->v[i].c, &temp_minimal, true );
 
       new_nodes[0][node_count - 1].min_n_count = 0;
       new_nodes[0][node_count - 1].min_n = NULL;
@@ -1283,12 +1276,12 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
 
   for ( i = 0; i < graph->v[0].n_count; i++ )
   {
-    if ( !minimal[graph->v[0].n[i]] )
+    if ( !minimal[graph->v[0].n[i]] && !( graph->options | DRE2_GREEDY ) )
       f_n_count--;
   }
   for ( i = 0; i < graph->v[graph->count - 1].p_count; i++ )
   {
-    if ( !minimal[graph->v[graph->count - 1].p[i]] )
+    if ( !minimal[graph->v[graph->count - 1].p[i]] && !( graph->options | DRE2_GREEDY ) )
       l_n_count--;
   }
 
@@ -1315,7 +1308,7 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
     }
     for ( i = 0; i < next_count; i++ )
     {
-      if ( !minimal[next_ptr[i]] )
+      if ( !minimal[next_ptr[i]] && !( graph->options | DRE2_GREEDY ) )
         continue;
       dre2_set_chars( graph, next_ptr[i] );
       for ( j = 1; j < RANGE; j++ )
@@ -1460,18 +1453,20 @@ dre2_add_minimal( int **minimal, int *node_count )
 
 // Add a node.
 void
-dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal )
+dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal, int no_realloc )
 {
   // Initialize the node count and vertex array if necessary.
   if ( ! *node_count )
   {
     *node_count = 1;
-    *v = ( struct dre2_node * )malloc( sizeof( struct dre2_node ) );
+    if ( !no_realloc )
+      *v = ( struct dre2_node * )malloc( sizeof( struct dre2_node ) );
   } else
   {
     // Increment node count and allocate additional memory.
     *node_count = *node_count + 1;
-    *v = ( struct dre2_node * )realloc( *v, sizeof( struct dre2_node ) * *node_count );
+    if ( !no_realloc )
+      *v = ( struct dre2_node * )realloc( *v, sizeof( struct dre2_node ) * *node_count );
   }
 
   // Set this node's data.
@@ -1693,7 +1688,7 @@ dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node, str
 void
 dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, int **minimal )
 {
-  dre2_add_node( v, node_count, v[0][last_node].c, minimal );
+  dre2_add_node( v, node_count, v[0][last_node].c, minimal, false );
   dre2_add_minimal( minimal, node_count );
   if ( v[0][last_node].c == DRE2_CHAR_CLASS )
     memcpy( v[0][*node_count - 1].possible, v[0][last_node].possible, RANGE * sizeof( int ) );
@@ -1831,7 +1826,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
   unsigned char c;
 
   // Add the group open node.
-  dre2_add_node( v, node_count, DRE2_GROUP_OPEN, minimal );
+  dre2_add_node( v, node_count, DRE2_GROUP_OPEN, minimal, false );
   ret_val.open = *node_count - 1;
 
   // Which node was the preceeding node.
@@ -1878,7 +1873,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
       }
 
       // Add the group close node.
-      dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal );
+      dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
       ret_val.close = *node_count - 1;
       ret_val.pos = pos;
       for ( i = 0; i < option_count; i++ )
@@ -1900,7 +1895,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
     } else if ( c == '[' )
     {
       // Character class.
-      dre2_add_node( v, node_count, DRE2_CHAR_CLASS, minimal );
+      dre2_add_node( v, node_count, DRE2_CHAR_CLASS, minimal, false );
 
       // Add it to the previous node's neighbor list.
       dre2_add_neighbor( v, last_node, *node_count - 1 );
@@ -1924,7 +1919,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
     } else if ( c == '\\' )
     {
       // Character class.
-      dre2_add_node( v, node_count, DRE2_CHAR_CLASS, minimal );
+      dre2_add_node( v, node_count, DRE2_CHAR_CLASS, minimal, false );
 
       // Add it to the previous node's neighbor list.
       dre2_add_neighbor( v, last_node, *node_count - 1 );
@@ -1936,7 +1931,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
     } else if ( c == '.' )
     {
       // Character class, all chars welcome.
-      dre2_add_node( v, node_count, DRE2_CHAR_CLASS, minimal );
+      dre2_add_node( v, node_count, DRE2_CHAR_CLASS, minimal, false );
 
       // Add it to the previous node's neighbor list.
       dre2_add_neighbor( v, last_node, *node_count - 1 );
@@ -1965,7 +1960,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
           dre2_remove_minimal( minimal, i );
       } else
       {
-        dre2_add_node( v, node_count, v[0][last_node].c, minimal );
+        dre2_add_node( v, node_count, v[0][last_node].c, minimal, false );
         if ( v[0][last_node].c == DRE2_CHAR_CLASS )
         {
           for ( i = 0; i < RANGE; i++ )
@@ -1974,7 +1969,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
 
         v[0][last_node].c = DRE2_GROUP_OPEN;
 
-        dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal );
+        dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
 
         // Add a link from group open to node.
         dre2_add_neighbor( v, last_node, last_node + 1 );
@@ -2014,7 +2009,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
           dre2_remove_minimal( minimal, i );
       } else
       {
-        dre2_add_node( v, node_count, v[0][last_node].c, minimal );
+        dre2_add_node( v, node_count, v[0][last_node].c, minimal, false );
         if ( v[0][last_node].c == DRE2_CHAR_CLASS )
         {
           for ( i = 0; i < RANGE; i++ )
@@ -2022,7 +2017,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
         }
 
         v[0][last_node].c = DRE2_GROUP_OPEN;
-        dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal );
+        dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
 
         // Add a link from group open to node.
         dre2_add_neighbor( v, last_node, last_node + 1 );
@@ -2086,7 +2081,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
     } else
     {
       // Add the node.
-      dre2_add_node( v, node_count, c, minimal );
+      dre2_add_node( v, node_count, c, minimal, false );
 
       // Add it to the previous node's neighbor list.
       dre2_add_neighbor( v, last_node, *node_count - 1 );
@@ -2107,7 +2102,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
   }
 
   // Add links from the last node in each option group to the group close node.
-  dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal );
+  dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
   for ( i = 0; i < option_count; i++ )
     dre2_add_neighbor( v, option_end[i], *node_count - 1 );
 
@@ -2120,8 +2115,8 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
 }
 
 // Parse function wrapper.
-struct dre2
-dre2_parse( unsigned char *re )
+struct dre2 *
+dre2_parse( unsigned char *re, int options )
 {
   int i;
   struct dre2_node *v, *min_v;
@@ -2129,15 +2124,22 @@ dre2_parse( unsigned char *re )
   int length;
   int *minimal, *new_minimal, minimal_count, *minimal_id;
   struct dre2_parse_return ret;
-  struct dre2 min_graph;
+  struct dre2 *min_graph, *graph;
+
+  // Setup the return graph and temp, initial graph.
+  graph = ( struct dre2 * )malloc( sizeof( struct dre2 ) );
+  min_graph = ( struct dre2 * )malloc( sizeof( struct dre2 ) );
+
+  // Make sure options are set correctly.
+  if ( options | DRE2_EXACT )
+    options = options | DRE2_GREEDY;
+  if ( options | DRE2_SUBMATCH )
+    options = options | DRE2_GREEDY;
 
   // Call the recursive parse function.
-  struct dre2 graph;
-  graph.state = NULL;
-  graph.reachable = NULL;
-  graph.r_temp = NULL;
-  graph.starting_points = NULL;
-  graph.starting_chars = NULL;
+  graph->options = options;
+  graph->starting_points = NULL;
+  graph->starting_chars = NULL;
   v = NULL;
 
   minimal = ( int * )malloc( sizeof( int ) );
@@ -2151,44 +2153,45 @@ dre2_parse( unsigned char *re )
     free( v );
     minimal = NULL;
     v = NULL;
-    graph.v = v;
-
+    graph->v = v;
+    free( graph );
+    graph = NULL;
     return graph;
   }
 
-  // Setup the parents for getting the min graph.
-  graph.v = v;
-  graph.count = node_count;
-  dre2_add_parents( &graph );
+  graph->v = v;
+  graph->count = node_count;
+  dre2_add_parents( graph );
 
-  min_graph.starting_points = NULL;
-  min_graph.starting_chars = ( int * )calloc( RANGE, sizeof( int ) );
+  min_graph->options = options;
+  min_graph->starting_points = NULL;
+  min_graph->starting_chars = ( int * )calloc( RANGE, sizeof( int ) );
 
-  new_minimal = ( int * )calloc( graph.count, sizeof( int ) );
-  minimal_id = ( int * )malloc( sizeof( int ) * graph.count );
+  new_minimal = ( int * )calloc( graph->count, sizeof( int ) );
+  minimal_id = ( int * )malloc( sizeof( int ) * graph->count );
   minimal_count = 0;
 
   // Strip out the group nodes and make it an epsilon-free graph.
-  min_v = NULL;
-  dre2_strip_groups( &graph, &min_graph, &min_v, minimal, &new_minimal, &minimal_count, &minimal_id );
-  min_graph.v = min_v;
+  min_v = ( struct dre2_node * )malloc( sizeof( struct dre2 ) * graph->count );
+  dre2_strip_groups( graph, min_graph, &min_v, minimal, &new_minimal, &minimal_count, &minimal_id );
+  min_graph->v = min_v;
 
   // Setup the reverse graph.
-  dre2_add_parents( &min_graph );
+  dre2_add_parents( min_graph );
 
   // Setup the skip table.
-  dre2_skip_table( &min_graph );
+  dre2_skip_table( min_graph );
 
   // Find the best starting point and chars.
-  min_graph.starting_point = dre2_starting_point( &min_graph, new_minimal, minimal_id, minimal_count );
-  if ( min_graph.starting_point == 1 )
-    min_graph.starting_point = 0;
-  if ( min_graph.starting_point == min_graph.count - 2 )
-    min_graph.starting_point = min_graph.count - 1;
-  dre2_starting_chars( &min_graph, new_minimal );
+  min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
+  if ( min_graph->starting_point == 1 )
+    min_graph->starting_point = 0;
+  if ( min_graph->starting_point == min_graph->count - 2 )
+    min_graph->starting_point = min_graph->count - 1;
+  dre2_starting_chars( min_graph, new_minimal );
 
   // Clean up the original graph's memory.
-  cleanup_dre2( &graph );
+  cleanup_dre2( graph );
 
   free( new_minimal );
   free( minimal_id );
@@ -2197,34 +2200,30 @@ dre2_parse( unsigned char *re )
   minimal_id = NULL;
   minimal = NULL;
 
-  min_graph.state = NULL;
-  min_graph.r_temp = ( int * )malloc( sizeof( int ) * min_graph.count );
-  min_graph.reachable = ( int * )malloc( sizeof( int ) * min_graph.count );
-
-  if ( min_graph.single )
+  if ( min_graph->single )
   {
     for ( i = 0; i < RANGE; i++ )
     {
-      if ( min_graph.starting_chars[i] )
-        min_graph.c = i;
+      if ( min_graph->starting_chars[i] )
+        min_graph->c = i;
     }
   }
 
-  if ( min_graph.starting_point == -1 )
+  if ( min_graph->starting_point == -1 )
   {
-    min_graph.match_method = DRE2_MN;
-  } else if ( min_graph.starting_point == 0 || min_graph.starting_point != min_graph.count - 1 )
+    min_graph->match_method = DRE2_MN;
+  } else if ( min_graph->starting_point == 0 || min_graph->starting_point != min_graph->count - 1 )
   {
-    if ( min_graph.single )
-      min_graph.match_method = DRE2_SN_SC;
+    if ( min_graph->single )
+      min_graph->match_method = DRE2_SN_SC;
     else
-      min_graph.match_method = DRE2_SN_MC;
+      min_graph->match_method = DRE2_SN_MC;
   } else
   {
-    if ( min_graph.single )
-      min_graph.match_method = DRE2_SN_SC_H;
+    if ( min_graph->single )
+      min_graph->match_method = DRE2_SN_SC_H;
     else
-      min_graph.match_method = DRE2_SN_MC_H;
+      min_graph->match_method = DRE2_SN_MC_H;
   }
 
   return min_graph;
