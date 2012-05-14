@@ -3,8 +3,9 @@
 int
 main( int argc, char *argv[] )
 {
-  struct dre2 *re; // Pointer to regex digraph object.
-  char *buf;       // Buffer to hold input strings.
+  struct dre2 *re;                  // Pointer to regex digraph object.
+  char *buf;                        // Buffer to hold input strings.
+  struct dre2_match_value result;   // Structure that holds the match info.
 
   if ( argc != 2 )
   {
@@ -28,7 +29,8 @@ main( int argc, char *argv[] )
   // Check if input strings match the regex.
   while ( fgets( buf, 0x10000 - 1, stdin ) )
   {
-    if ( dre2_match( re, buf ) )
+    result = dre2_match( re, buf );
+    if ( result.matched )
       printf( "%s", buf );
   }
 
