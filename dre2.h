@@ -193,4 +193,4 @@ struct dre2_parse_return dre2_parse_recursive( struct dre2_node **v, int *node_c
 struct dre2 * dre2_parse( unsigned char *re, int options );
 void print_dre2( struct dre2 *graph );
 void print_reverse_dre2( struct dre2 *graph );
-unsigned char *dre2_matched_substring( unsigned char *input, struct dre2_match_value *value );
+void dre2_matched_substring( unsigned char *input, struct dre2_match_value *value, unsigned char **match );

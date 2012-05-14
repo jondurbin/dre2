@@ -177,19 +177,18 @@ dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input
 }
 
 // Extract the matching portion of the regex.
-unsigned char *
-dre2_matched_substring( unsigned char *input, struct dre2_match_value *value )
+void
+dre2_matched_substring( unsigned char *input, struct dre2_match_value *value, unsigned char **match )
 {
-  unsigned char *match;
   int size;
 
   size = value->end_pos - value->start_pos;
   if ( size <= 0 )
-    return NULL;
-
-  match = ( unsigned char * )malloc( sizeof( unsigned char ) * ( size + 1 ) );
-  sprintf( match, "%.*s", size, input + value->start_pos );
-  return match;
+  {
+    match[0][0] = '\0';
+    return;
+  }
+  sprintf( *match, "%.*s", size, input + value->start_pos );
 }
 
 
