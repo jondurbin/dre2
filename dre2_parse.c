@@ -685,6 +685,10 @@ dre2_node_cost( struct dre2 *graph, int id )
   cost = 0;
   switch( node->c )
   {
+    case DRE2_DOT:
+      for ( i = 0; i < RANGE; i++ )
+        cost += dre2_frequency[i];
+      return cost;
     case DRE2_ALPHA:
       for ( i = 'a'; i <= 'z'; i++ )
         cost += dre2_frequency[i];
@@ -811,6 +815,11 @@ dre2_set_chars( struct dre2 *graph, int id )
   struct dre2_node *node;
 
   node = &graph->v[id];
+  if ( node->c == DRE2_DOT )
+  {
+    for ( i = 0; i < RANGE; i++ )
+      graph->starting_chars[i] = true;
+  }
   if ( node->c == DRE2_ALPHA || node->c == DRE2_WORD || node->c == DRE2_DOMAIN || node->c == DRE2_URL )
   {
     for ( i = 'a'; i <= 'z'; i++ )
@@ -913,7 +922,7 @@ dre2_starting_chars( struct dre2 *graph, int *minimal )
     // Set all of the chars possible from the reachable nodes of the first node.
     for ( i = 0; i < graph->v[0].n_count; i++ )
     {
-      if ( minimal[graph->v[0].n[i]] || ( graph->options | DRE2_GREEDY ) )
+      if ( minimal[graph->v[0].n[i]] || ( graph->options & DRE2_GREEDY ) )
         dre2_set_chars( graph, graph->v[0].n[i] );
     }
   } else
@@ -921,7 +930,7 @@ dre2_starting_chars( struct dre2 *graph, int *minimal )
     // Set all of the chars possible from the parents of the last node.
     for ( i = 0; i < graph->v[graph->count - 1].p_count; i++ )
     {
-      if ( minimal[graph->v[graph->count - 1].p[i]] || ( graph->options | DRE2_GREEDY ) )
+      if ( minimal[graph->v[graph->count - 1].p[i]] || ( graph->options & DRE2_GREEDY ) )
         dre2_set_chars( graph, graph->v[graph->count - 1].p[i] );
     }
   }
@@ -974,7 +983,7 @@ dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int mini
 
   // Recursively find paths through the minimal graph.
   dre2_find_paths_recursive( graph, 0, &path_count, &paths );
-
+  required = NULL;
   for ( i = 0; i < path_count; i++ )
   {
     best = dre2_best_choice( graph, paths[i].nodes, paths[i].count );
@@ -1038,7 +1047,11 @@ dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int mini
   if ( path_count > 1 && dre2_use_paths( graph, best, &cost ) )
     best = -1;
 
-  free( required ); required = NULL;
+  if ( required != NULL )
+  {
+    free( required ); required = NULL;
+  }
+
   for ( i = 0; i < path_count; i++ )
   {
     free( paths[i].nodes );
@@ -1276,12 +1289,12 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
 
   for ( i = 0; i < graph->v[0].n_count; i++ )
   {
-    if ( !minimal[graph->v[0].n[i]] && !( graph->options | DRE2_GREEDY ) )
+    if ( !minimal[graph->v[0].n[i]] && !( graph->options & DRE2_GREEDY ) )
       f_n_count--;
   }
   for ( i = 0; i < graph->v[graph->count - 1].p_count; i++ )
   {
-    if ( !minimal[graph->v[graph->count - 1].p[i]] && !( graph->options | DRE2_GREEDY ) )
+    if ( !minimal[graph->v[graph->count - 1].p[i]] && !( graph->options & DRE2_GREEDY ) )
       l_n_count--;
   }
 
@@ -1308,7 +1321,7 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
     }
     for ( i = 0; i < next_count; i++ )
     {
-      if ( !minimal[next_ptr[i]] && !( graph->options | DRE2_GREEDY ) )
+      if ( !minimal[next_ptr[i]] && !( graph->options & DRE2_GREEDY ) )
         continue;
       dre2_set_chars( graph, next_ptr[i] );
       for ( j = 1; j < RANGE; j++ )
@@ -1340,6 +1353,13 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
   cost.l_n_count = l_n_count;
   cost.l_c_count = l_c_count;
   cost.l_frequency = l_frequency;
+
+  if ( graph->options & DRE2_GREEDY && graph->v[graph->count - 1].n_count > 0 )
+  {
+    cost.l_n_count = 100;
+    cost.l_c_count = RANGE;
+    cost.l_frequency = RANGE * 100;
+  }
   return cost;
 }
 
@@ -1931,14 +1951,12 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
     } else if ( c == '.' )
     {
       // Character class, all chars welcome.
-      dre2_add_node( v, node_count, DRE2_CHAR_CLASS, minimal, false );
+      dre2_add_node( v, node_count, DRE2_DOT, minimal, false );
 
       // Add it to the previous node's neighbor list.
       dre2_add_neighbor( v, last_node, *node_count - 1 );
 
       last_node = *node_count - 1;
-      for ( k = 0; k < RANGE; k++ )
-        v[0][last_node].possible[k] = true;
       mod = true;
     } else if ( c == '*' )
     {
@@ -2242,6 +2260,14 @@ print_dre2( struct dre2 *graph )
     if ( graph->v[i].c == DRE2_CHAR_CLASS )
     {
       printf( "Node %d C: ", i );
+      for ( j = 0; j < RANGE; j++ )
+      {
+        if ( graph->v[i].possible[j] )
+          printf( "x" );
+        else
+          printf( "." );
+      }
+      printf( "\n" );
     } else
     {
       printf( "Node %d (%c): ", i, graph->v[i].c == DRE2_GROUP_OPEN || graph->v[i].c == DRE2_GROUP_CLOSE ? 'G' : graph->v[i].c );
