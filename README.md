@@ -24,7 +24,7 @@
   }
 ```
 
-### Extracting the submatch from the input which matched the regex.
+### Extracting the matching substring.
 ```c
     unsigned char *match;
     result = dre2_match( re, buf );
