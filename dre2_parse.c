@@ -367,7 +367,7 @@ dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action, int
       node->c = '\f';
   } else
   {
-    // Match literation '\', '.', '?', '*', '+', etc.
+    // Match literal '\', '.', '?', '*', '+', etc.
     if ( part_of_class )
       node->possible[*c] = action;
     else
