@@ -53,7 +53,7 @@ DRE2_OPTION
   DRE2_GREEDY = 1 << 0,          // Greedy match, used when we want info about the string that matched the regex.
   DRE2_FULL_MATCH = 1 << 1,      // Exact match, e.g. 'abc' matches 'abc' but not 'abcd'
   DRE2_NO_CASE = 1 << 2,         // Ignore case, e.g. 'a' matches 'a' or 'A'.
-  DRE2_SUBMATCH = 1 << 3,        // Keep the original digraph so submatch extraction can take place.
+  DRE2_SUBMATCH = 1 << 3,        // TODO, support submatch tracking and extraction.
 };
 
 #ifndef true
