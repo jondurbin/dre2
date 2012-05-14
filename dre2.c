@@ -6,6 +6,7 @@ main( int argc, char *argv[] )
   struct dre2 *re;                  // Pointer to regex digraph object.
   char *buf;                        // Buffer to hold input strings.
   struct dre2_match_value result;   // Structure that holds the match info.
+  unsigned char *match;             // Substring which matched the regex.
 
   if ( argc != 2 )
   {
@@ -14,7 +15,7 @@ main( int argc, char *argv[] )
   }
 
   // Parse the regex string into the dre2 object.
-  re = dre2_parse( ( unsigned char * )argv[1], 0 );
+  re = dre2_parse( ( unsigned char * )argv[1], DRE2_GREEDY );
 
   // Make sure parsing was successful.
   if ( re == NULL )
@@ -31,7 +32,14 @@ main( int argc, char *argv[] )
   {
     result = dre2_match( re, buf );
     if ( result.matched )
-      printf( "%s", buf );
+    {
+      match = dre2_matched_substring( buf, &result );
+      printf( "%s\n", match );
+      if ( match != NULL )
+      {
+        free( match ); match = NULL;
+      }
+    }
   }
 
   // Cleanup memory.
