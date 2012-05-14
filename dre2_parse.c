@@ -2131,9 +2131,9 @@ dre2_parse( unsigned char *re, int options )
   min_graph = ( struct dre2 * )malloc( sizeof( struct dre2 ) );
 
   // Make sure options are set correctly.
-  if ( options | DRE2_EXACT )
+  if ( options & DRE2_FULL_MATCH )
     options = options | DRE2_GREEDY;
-  if ( options | DRE2_SUBMATCH )
+  if ( options & DRE2_SUBMATCH )
     options = options | DRE2_GREEDY;
 
   // Call the recursive parse function.
