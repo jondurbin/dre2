@@ -176,6 +176,23 @@ dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input
   return last_match;
 }
 
+// Extract the matching portion of the regex.
+unsigned char *
+dre2_matched_substring( unsigned char *input, struct dre2_match_value *value )
+{
+  unsigned char *match;
+  int size;
+
+  size = value->end_pos - value->start_pos;
+  if ( size <= 0 )
+    return NULL;
+
+  match = ( unsigned char * )malloc( sizeof( unsigned char ) * ( size + 1 ) );
+  sprintf( match, "%.*s", size, input + value->start_pos );
+  return match;
+}
+
+
 // Match when there is a single character and single node, horspool.
 struct dre2_match_value
 dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable )
