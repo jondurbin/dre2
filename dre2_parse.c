@@ -870,7 +870,13 @@ dre2_set_chars( struct dre2 *graph, int id )
     for ( i = 0; i < RANGE; i++ )
     {
       if ( node->possible[i] )
+      {
         graph->starting_chars[i] = true;
+        if ( i >= 'a' && i <= 'z' )
+          graph->starting_chars[i - ( 'a' - 'A' ) ] = true;
+        else if ( i >= 'A' && i <= 'Z' )
+          graph->starting_chars[i + ( 'a' - 'A' ) ] = true;
+      }
     }
   }
   if ( node->c == DRE2_SIM_DIGIT || node->c == DRE2_OBF_DIGIT )
@@ -893,7 +899,16 @@ dre2_set_chars( struct dre2 *graph, int id )
       graph->starting_chars[i] = true;
   }
   if ( node->c >= 0 )
+  {
     graph->starting_chars[node->c] = true;
+    if ( graph->options & DRE2_NO_CASE )
+    {
+      if ( node->c >= 'a' && node->c <= 'z' )
+        graph->starting_chars[node->c - ( 'a' - 'A' ) ] = true;
+      else if ( node->c >= 'A' && node->c <= 'Z' )
+        graph->starting_chars[node->c + ( 'a' - 'A' ) ] = true;
+    }
+  }
 }
 
 // Set the starting chars.
@@ -2136,7 +2151,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
 struct dre2 *
 dre2_parse( unsigned char *re, int options )
 {
-  int i;
+  int i, j;
   struct dre2_node *v, *min_v;
   int node_count;
   int length;
@@ -2242,6 +2257,27 @@ dre2_parse( unsigned char *re, int options )
       min_graph->match_method = DRE2_SN_SC_H;
     else
       min_graph->match_method = DRE2_SN_MC_H;
+  }
+
+  // Make it case-insensitive.
+  if ( options & DRE2_NO_CASE )
+  {
+    for ( i = 0; i < min_graph->count; i++ )
+    {
+      if ( min_graph->v[i].c == DRE2_CHAR_CLASS )
+      {
+        for ( j = 'a'; j <= 'z'; j++ )
+        {
+          if ( min_graph->v[i].possible[j] )
+            min_graph->v[i].possible[j - ('a' - 'A')] = true;
+        }
+        for ( j = 'A'; j <= 'Z'; j++ )
+        {
+          if ( min_graph->v[i].possible[j] )
+            min_graph->v[i].possible[j + ('a' - 'A')] = true;
+        }
+      }
+    }
   }
 
   return min_graph;
