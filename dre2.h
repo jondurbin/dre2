@@ -32,6 +32,7 @@ DRE2_NODE_TYPE
   DRE2_WORD = -13,
   DRE2_WHITE_SPACE = -14,
   DRE2_8BIT = -15,
+  DRE2_DOT = -16,
 };
 
 // Matching methods.
@@ -61,6 +62,13 @@ DRE2_OPTION
 #ifndef false
   #define false 0
 #endif
+
+struct
+dre2_match_value {
+  int matched;                   // True/False flag indicating if the string matched.
+  int start_pos;                 // Index of first character of substring that matched.
+  int end_pos;                   // Index of last character of substring that matched.
+};
 
 struct
 dre2_path {
@@ -128,23 +136,34 @@ dre2 {
 };
 
 
-// Function definitions.
+// True/False function determining if a node matches the specified char.
 int dre2_char_matches( struct dre2_node *node, unsigned char c );
-unsigned char * dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable );
-unsigned char * dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-unsigned char * dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-unsigned char * dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-unsigned char * dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-unsigned char * dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-unsigned char * dre2_match( struct dre2 *graph, unsigned char *input );
+
+// Functions to check whether or not a string matches the regex.
+unsigned char *dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable );
+struct dre2_match_value dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+struct dre2_match_value dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+struct dre2_match_value dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+struct dre2_match_value dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+struct dre2_match_value dre2_match( struct dre2 *graph, unsigned char *input );
+
+// Generate an escaped regex from an input string.
 unsigned char * dre2_escaped( unsigned char *re );
+
+// Various utility functions.
 int dre2_binsearch( int *values, int min, int max, int key );
 int dre2_largest( int *values, int length );
 int dre2_contains_int( int *values, int length, int key );
 int dre2_contains_char( unsigned char *string, unsigned char c );
-void dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action, int part_of_class );
-int dre2_character_class( struct dre2_node *node, unsigned char *re, int s );
 int string_to_int( unsigned char *s );
+
+// Sets the flag for a node when using a predefined class, e.g. '\a'
+void dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action, int part_of_class );
+
+// Sets the possible characters when in a character class, e.g. [a-z]
+int dre2_character_class( struct dre2_node *node, unsigned char *re, int s );
+
 struct dre2_range_return dre2_range( unsigned char *re, int length, int pos );
 void cleanup_nodes( struct dre2_node **v, int node_count );
 void cleanup_dre2( struct dre2 *graph );
