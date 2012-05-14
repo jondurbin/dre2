@@ -49,8 +49,8 @@ DRE2_MATCH_METHOD
 enum
 DRE2_OPTION
 {
-  DRE2_GREEDY = 1,               // Greedy match, used when we want info about the string that matched the regex.
-  DRE2_EXACT = 1 << 1,           // Exact match, e.g. 'abc' matches 'abc' but not 'abcd'
+  DRE2_GREEDY = 1 << 0,          // Greedy match, used when we want info about the string that matched the regex.
+  DRE2_FULL_MATCH = 1 << 1,      // Exact match, e.g. 'abc' matches 'abc' but not 'abcd'
   DRE2_NO_CASE = 1 << 2,         // Ignore case, e.g. 'a' matches 'a' or 'A'.
   DRE2_SUBMATCH = 1 << 3,        // Keep the original digraph so submatch extraction can take place.
 };
@@ -131,12 +131,12 @@ dre2 {
 // Function definitions.
 int dre2_char_matches( struct dre2_node *node, unsigned char c );
 unsigned char * dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable );
-int dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-int dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-int dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-int dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-int dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-int dre2_match( struct dre2 *graph, unsigned char *input );
+unsigned char * dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+unsigned char * dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+unsigned char * dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+unsigned char * dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+unsigned char * dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+unsigned char * dre2_match( struct dre2 *graph, unsigned char *input );
 unsigned char * dre2_escaped( unsigned char *re );
 int dre2_binsearch( int *values, int min, int max, int key );
 int dre2_largest( int *values, int length );
