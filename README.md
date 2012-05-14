@@ -27,15 +27,12 @@
 ### Extracting the matching substring.
 ```c
     unsigned char *match;
+    match = ( unsigned char * )malloc( strlen( buf ) * sizeof( unsigned char ) );
     result = dre2_match( re, buf );
     if ( result.matched )
     {
-      match = dre2_matched_substring( buf, &result );
+      dre2_matched_substring( buf, &result, &match );
       printf( "%s\n", match );
-      if ( match != NULL )
-      {
-        free( match ); match = NULL;
-      }
     }
 ```
 
@@ -52,7 +49,7 @@ int
 main( int argc, char *argv[] )
 {
   struct dre2 *re;                  // Pointer to regex digraph object.
-  char *buf;                        // Buffer to hold input strings.
+  unsigned char *buf;               // Buffer to hold input strings.
   struct dre2_match_value result;   // Structure that holds the match info.
   unsigned char *match;             // Substring which matched the regex.
 
@@ -72,8 +69,9 @@ main( int argc, char *argv[] )
     return 0;
   }
 
-  // Allocate some memory for input strings from stdin.
+  // Allocate some memory for input strings from stdin and matched substring.
   buf = ( unsigned char * )calloc( 0x10000, 1 );
+  match = ( unsigned char * )calloc( 0x10000, 1 );
 
   // Check if input strings match the regex.
   while ( fgets( buf, 0x10000 - 1, stdin ) )
@@ -81,18 +79,15 @@ main( int argc, char *argv[] )
     result = dre2_match( re, buf );
     if ( result.matched )
     {
-      match = dre2_matched_substring( buf, &result );
+      dre2_matched_substring( buf, &result, &match );
       printf( "%s\n", match );
-      if ( match != NULL )
-      {
-        free( match ); match = NULL;
-      }
     }
   }
 
   // Cleanup memory.
   cleanup_dre2( re );
   free( buf ); buf = NULL;
+  free( match ); match = NULL;
   return 0;
 }
 ```
