@@ -1508,11 +1508,7 @@ dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost *cost )
     if ( cost->l_n_count * cost->l_c_count < cost->f_n_count * cost->f_c_count ||
        ( cost->l_n_count * cost->l_c_count == cost->f_n_count * cost->f_c_count && cost->l_frequency < cost->f_frequency ) ||
        ( cost->l_n_count * cost->l_c_count == cost->f_n_count * cost->f_c_count && diff >= 0.9 ) )
-    {
-      
-       printf( "HERE!\n" );
        return graph->count - 1;
-    }
   }
   return 0;
 }
