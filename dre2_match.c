@@ -212,7 +212,7 @@ dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *
     {
       ret_val.matched = true;
       ret_val.start_pos = result - input;
-      ret_val.end_pos = pch + 1 - input;
+      ret_val.end_pos = pch - input;
       return ret_val;
     }
     pch = memchr( pch + graph->skip_table[*pch], c, length - ( pch - input ) );
@@ -279,7 +279,7 @@ dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *
     {
       ret_val.matched = true;
       ret_val.start_pos = result - input;
-      ret_val.end_pos = pch - input;
+      ret_val.end_pos = pch - input + 1;
       return ret_val;
     }
     pch = pch + graph->skip_table[*pch];
@@ -407,6 +407,7 @@ dre2_match( struct dre2 *graph, unsigned char *input )
   // Allocate some memory.
   r_temp = ( int * )malloc( sizeof( int ) * graph->count );
   reachable = ( int * )malloc( sizeof( int ) * graph->count );
+
   if ( graph->options & DRE2_FULL_MATCH )
   {
     result = dre2_full_match( graph, input, length, r_temp, reachable );
