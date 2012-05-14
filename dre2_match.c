@@ -2,12 +2,19 @@
 
 // Match a single node.
 int
-dre2_char_matches( struct dre2_node *node, unsigned char c )
+dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c )
 {
   if ( node->c >= 0 )
   {
     if ( c == node->c )
       return true;
+    if ( graph->options & DRE2_NO_CASE )
+    {
+      if ( node->c >= 'a' && node->c <= 'z' && c == node->c - ( 'a' - 'A' ) )
+        return true;
+      else if ( node->c >= 'A' && node->c <= 'Z' && c == node->c + ( 'a' - 'A' ) )
+        return true;
+    }
     return false;
   }
   if ( node->c == DRE2_CHAR_CLASS )
@@ -106,7 +113,7 @@ dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input
       r = reachable[i];
       node = &graph->v[r];
       // Check if the character matches the node.
-      if ( ( node->c == DRE2_EOF && ( ( *input == ' ' && input - begin_ptr + 1 == length - 1 ) || *input == '\0' ) ) || dre2_char_matches( node, *input ) )
+      if ( ( node->c == DRE2_EOF && ( ( *input == ' ' && input - begin_ptr + 1 == length - 1 ) || *input == '\0' ) ) || dre2_char_matches( graph, node, *input ) )
       {
         matched = true;
 
