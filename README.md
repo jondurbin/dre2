@@ -1,4 +1,6 @@
-##dre2 - An extremely fast, lightweight regex engine written in pure c.
+#dre2 - An extremely fast, lightweight regex engine written in pure c.
+
+## Basics
 
 ### Generating the dre2 object from a regular expresion string.
 ```c
@@ -70,4 +72,32 @@ main( int argc, char *argv[] )
   free( buf ); buf = NULL;
   return 0;
 }
+```
+
+## DRE2 options:
+
+### Full match - Entire string must match the regex:
+```c
+  re = dre2_parse( regex_string, DRE2_FULL_MATCH );
+```
+
+### Case-insensitive regex:
+```c
+  re = dre2_parse( regex_string, DRE2_NO_CASE );
+```
+
+### Greedy mode:
+```c
+  re = dre2_parse( regex_string, DRE2_GREEDY );
+```
+
+### Combinations:
+#### Greedy + ignore case:
+```c
+  re = dre2_parse( regex_string, DRE2_GREEDY | DRE2_NO_CASE );
+```
+
+#### Full match + ignore case:
+```c
+  re = dre2_parse( regex_string, DRE2_NO_CASE | DRE2_FULL_MATCH );
 ```
