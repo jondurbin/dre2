@@ -137,7 +137,7 @@ dre2 {
 
 
 // True/False function determining if a node matches the specified char.
-int dre2_char_matches( struct dre2_node *node, unsigned char c );
+int dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c );
 
 // Functions to check whether or not a string matches the regex.
 unsigned char *dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable );
