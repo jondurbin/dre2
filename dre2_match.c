@@ -15,6 +15,8 @@ dre2_char_matches( struct dre2_node *node, unsigned char c )
 
   switch( node->c )
   {
+    case DRE2_DOT:
+      return true;
     case DRE2_ALPHA:
       if ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) )
         return true;
@@ -123,16 +125,15 @@ dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input
           if ( !found )
             r_temp[iter++] = next_nodes[j];
           if ( ( direction == DRE2_RIGHT && next_nodes[j] == graph->count - 1 ) || ( direction == DRE2_LEFT && next_nodes[j] == 0 ) )
-          {
             complete = true;
-            break;
-          }
         }
         if ( complete )
         {
-          last_match = input + 1;
+          last_match = input;
+          if ( direction == DRE2_RIGHT )
+            last_match++;
           if ( !graph->options & DRE2_GREEDY )
-            return input;
+            return last_match;
         }
       }
     }
@@ -169,28 +170,40 @@ dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input
 }
 
 // Match when there is a single character and single node, horspool.
-unsigned char *
+struct dre2_match_value
 dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable )
 {
   int i;
   unsigned char c, *pch, *result;
+  struct dre2_match_value ret_val;
 
   c = graph->c;
-  pch = memchr( input + graph->min_length - 1, c, length - graph->min_length );
+  if ( graph->min_length > 0 )
+    pch = memchr( input + graph->min_length - 1, c, length - graph->min_length );
+  else
+    pch = input;
   while ( pch != NULL && pch - input <= length && *pch != '\0' )
   {
     if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_LEFT, length, r_temp, reachable ) ) != NULL )
-      return pch + 1;
+    {
+      ret_val.matched = true;
+      ret_val.start_pos = result - input;
+      ret_val.end_pos = pch + 1 - input;
+      return ret_val;
+    }
     pch = memchr( pch + graph->skip_table[*pch], c, length - ( pch - input ) );
   }
-  return NULL;
+  ret_val.matched = false;
+  return ret_val;
 }
 
 // Match when there is a single character and single node.
-unsigned char *
+struct dre2_match_value
 dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable )
 {
   unsigned char c, *pch, *result;
+  struct dre2_match_value ret_val;
+
   c = graph->c;
   pch = memchr( input, c, length );
   while ( pch != NULL && pch - input <= length && *pch != '\0' )
@@ -198,44 +211,67 @@ dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, i
     if ( graph->starting_point == 0 )
     {
       if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable ) ) != NULL )
-        return result;
+      {
+        ret_val.matched = true;
+        ret_val.start_pos = pch - input;
+        ret_val.end_pos = result - input;
+        return ret_val;
+      }
     } else
     {
       if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_LEFT, length, r_temp, reachable ) ) != NULL )
       {
+        ret_val.start_pos = result - input;
         if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable ) ) != NULL )
-          return result;
+        {
+          ret_val.matched = true;
+          ret_val.end_pos = result - input;
+          return ret_val;
+        }
       }
     }
     pch = memchr( pch + 1, c, length - ( pch - input ) );
   }
-  return NULL;
+  ret_val.matched = false;
+  return ret_val;
 }
 
 // Match when there is a single node but multiple characters, horspool.
-unsigned char *
+struct dre2_match_value
 dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable )
 {
   unsigned char *pch, *result;
-  pch = input + graph->min_length - 1;
+  struct dre2_match_value ret_val;
+
+  if ( graph->min_length > 0 )
+    pch = input + graph->min_length - 1;
+  else
+    pch = input;
   while ( pch - input <= length && *pch != '\0' && !graph->starting_chars[*pch] )
     *pch++;
   while ( pch - input <= length && *pch != '\0' )
   {
     if ( ( result = dre2_matcher( graph, input, pch, graph->count - 1, DRE2_LEFT, length, r_temp, reachable ) ) != NULL )
-      return result;
+    {
+      ret_val.matched = true;
+      ret_val.start_pos = result - input;
+      ret_val.end_pos = pch - input;
+      return ret_val;
+    }
     pch = pch + graph->skip_table[*pch];
     while ( pch - input <= length && *pch != '\0' && !graph->starting_chars[*pch] )
       *pch++;
   }
-  return NULL;
+  ret_val.matched = false;
+  return ret_val;
 }
 
 // Match when there is a single node but multiple characters.
-unsigned char *
+struct dre2_match_value
 dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable )
 {
   unsigned char *pch, *result;
+  struct dre2_match_value ret_val;
 
   pch = input;
   while ( pch - input <= length && *pch != '\0' && !graph->starting_chars[*pch] )
@@ -244,29 +280,42 @@ dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, i
   {
     if ( graph->starting_point == 0 )
     {
-       if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable ) ) != NULL )
-        return result;
+      if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable ) ) != NULL )
+      {
+        ret_val.matched = true;
+        ret_val.start_pos = pch - input;
+        ret_val.end_pos = result - input;
+        return ret_val;
+      }
     } else
     {
       if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_LEFT, length, r_temp, reachable ) ) != NULL )
       {
+        ret_val.start_pos = result - input;
         if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable ) ) != NULL )
-          return result;
+        {
+          ret_val.matched = true;
+          ret_val.end_pos = pch - input;
+          return ret_val;
+        }
       }
     }
     *pch++;
     while ( pch - input <= length && *pch != 0 && !graph->starting_chars[*pch] )
       *pch++;
   }
-  return NULL;
+  ret_val.matched = false;
+  return ret_val;
 }
 
 // Match when there are multiple nodes.
-unsigned char *
+struct dre2_match_value
 dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable )
 {
   int i;
   unsigned char *pch, *result;
+  struct dre2_match_value ret_val;
+
   pch = input;
   while ( pch - input <= length && *pch != '\0' && !graph->starting_chars[*pch] )
     *pch++;
@@ -276,79 +325,90 @@ dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int 
     {
       if ( ( result = dre2_matcher( graph, input, pch, graph->starting_points[i], DRE2_LEFT, length, r_temp, reachable ) ) != NULL )
       {
+        ret_val.start_pos = result - input;
         if ( ( result = dre2_matcher( graph, input, pch, graph->starting_points[i], DRE2_RIGHT, length, r_temp, reachable ) ) != NULL )
-          return result;
+        {
+          ret_val.matched = true;
+          ret_val.end_pos = result - input; 
+          return ret_val;
+        }
       }
     }
     *pch++;
     while ( pch - input <= length && *pch != 0 && !graph->starting_chars[*pch] )
       *pch++;
   }
-  return NULL;
+  ret_val.matched = false;
+  return ret_val;
 }
 
 // Check if the string is a complete match.
-unsigned char *
+struct dre2_match_value
 dre2_full_match( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable )
 {
   unsigned char *pch, *result;
-  pch = input;
+  struct dre2_match_value ret_val;
 
+  ret_val.start_pos = 0;
+  ret_val.end_pos = length;
+  ret_val.matched = false;
+  pch = input;
   if ( ( result = dre2_matcher( graph, input, pch, 0, DRE2_RIGHT, length, r_temp, reachable ) ) != NULL )
   {
-    if ( result - input == length )
-      return result;
+    if ( result - input == length || result - input == length + 1 )
+      ret_val.matched = true;
     if ( result - input == length - 1 && ( input[length - 1] == '\n' || input[length - 1] == '\r' ) )
-      return result;
+      ret_val.matched = true;
     if ( result - input == length - 2 && ( input[length - 2] == '\r' && input[length - 1] == '\n' ) )
-      return result;
+      ret_val.matched = true;
   }
-  return NULL;
+  return ret_val;
 }
 
 // Regex match driver.
-unsigned char *
+struct dre2_match_value
 dre2_match( struct dre2 *graph, unsigned char *input )
 {
   int length;
-  unsigned char *matched;
+  struct dre2_match_value result;
   int *r_temp, *reachable;
+
+  result.matched = false;
 
   // Make sure the string is even long enough before attempting matching.
   length = strlen( input );
   if ( length < graph->min_length )
-    return false;
+    return result;
 
   // Allocate some memory.
   r_temp = ( int * )malloc( sizeof( int ) * graph->count );
   reachable = ( int * )malloc( sizeof( int ) * graph->count );
-  matched = NULL;
   if ( graph->options & DRE2_FULL_MATCH )
   {
-    matched = dre2_full_match( graph, input, length, r_temp, reachable );
+    result = dre2_full_match( graph, input, length, r_temp, reachable );
   } else
   {
     switch ( graph->match_method )
     {
       case DRE2_SN_SC_H:
-        matched = dre2_sn_sc_horspool( graph, input, length, r_temp, reachable );
+        result = dre2_sn_sc_horspool( graph, input, length, r_temp, reachable );
         break;
       case DRE2_SN_SC:
-        matched = dre2_sn_sc( graph, input, length, r_temp, reachable );
+        result = dre2_sn_sc( graph, input, length, r_temp, reachable );
         break;
       case DRE2_SN_MC_H:
-        matched = dre2_sn_mc_horspool( graph, input, length, r_temp, reachable );
+        result = dre2_sn_mc_horspool( graph, input, length, r_temp, reachable );
         break;
       case DRE2_SN_MC:
-        matched = dre2_sn_mc( graph, input, length, r_temp, reachable );
+        result = dre2_sn_mc( graph, input, length, r_temp, reachable );
         break;
       case DRE2_MN:
-        matched = dre2_mn( graph, input, length, r_temp, reachable );
+        result = dre2_mn( graph, input, length, r_temp, reachable );
         break;
     }
   }
   free( r_temp ); r_temp = NULL;
   free( reachable ); reachable = NULL;
 
-  return matched;
+  return result;
 }
