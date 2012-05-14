@@ -15,7 +15,7 @@ main( int argc, char *argv[] )
   }
 
   // Parse the regex string into the dre2 object.
-  re = dre2_parse( ( unsigned char * )argv[1], DRE2_GREEDY );
+  re = dre2_parse( ( unsigned char * )argv[1], 0 );
 
   // Make sure parsing was successful.
   if ( re == NULL )
