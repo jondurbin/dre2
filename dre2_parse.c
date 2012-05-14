@@ -341,6 +341,30 @@ dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action, int
     {
       node->c = DRE2_8BIT;
     }
+  } else if ( *c == 'n' )
+  {
+    if ( part_of_class )
+      node->possible['\n'] = action;
+    else
+      node->c = '\n';
+  } else if ( *c == 'r' )
+  {
+    if ( part_of_class )
+      node->possible['\r'] = action;
+    else
+      node->c = '\r';
+  } else if ( *c == 't' )
+  {
+    if ( part_of_class )
+      node->possible['\t'] = action;
+    else
+      node->c = '\t';
+  } else if ( *c == 'f' )
+  {
+    if ( part_of_class )
+      node->possible['\f'] = action;
+    else
+      node->c = '\f';
   } else
   {
     // Match literation '\', '.', '?', '*', '+', etc.
@@ -923,6 +947,11 @@ dre2_starting_chars( struct dre2 *graph, int *minimal )
     graph->starting_chars[i] = false;
   }
 
+  if ( graph->starting_point == graph->count - 1 && graph->v[graph->count - 1].n_count > 0 && ( graph->options & DRE2_GREEDY ) )
+  {
+    graph->starting_point = 0;
+  }
+
   if ( graph->starting_point == -1 )
   {
     // Using multiple nodes.
@@ -1293,6 +1322,7 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
   struct dre2_node *node;
   struct dre2_fl_cost cost;
   unsigned char *temp;
+  int ok;
   int *tp, *original;
 
   f_n_count = graph->v[0].n_count;
@@ -1369,11 +1399,23 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
   cost.l_c_count = l_c_count;
   cost.l_frequency = l_frequency;
 
-  if ( graph->options & DRE2_GREEDY && graph->v[graph->count - 1].n_count > 0 )
+  ok = true;
+  if ( graph->options & DRE2_GREEDY )
   {
-    cost.l_n_count = 100;
-    cost.l_c_count = RANGE;
-    cost.l_frequency = RANGE * 100;
+    for ( i = 0; i < graph->v[graph->count - 1].p_count; i++ )
+    {
+      if ( graph->v[graph->v[graph->count - 1].p[i]].n_count > 1 )
+      {
+        ok = false;
+        break;
+      }
+    }
+    if ( !ok )
+    {
+      cost.l_n_count = 100;
+      cost.l_c_count = RANGE;
+      cost.l_frequency = RANGE * 100;
+    }
   }
   return cost;
 }
@@ -1466,7 +1508,11 @@ dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost *cost )
     if ( cost->l_n_count * cost->l_c_count < cost->f_n_count * cost->f_c_count ||
        ( cost->l_n_count * cost->l_c_count == cost->f_n_count * cost->f_c_count && cost->l_frequency < cost->f_frequency ) ||
        ( cost->l_n_count * cost->l_c_count == cost->f_n_count * cost->f_c_count && diff >= 0.9 ) )
-      return graph->count - 1;
+    {
+      
+       printf( "HERE!\n" );
+       return graph->count - 1;
+    }
   }
   return 0;
 }
@@ -2241,7 +2287,6 @@ dre2_parse( unsigned char *re, int options )
         min_graph->c = i;
     }
   }
-
   if ( min_graph->starting_point == -1 )
   {
     min_graph->match_method = DRE2_MN;
