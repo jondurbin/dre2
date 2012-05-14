@@ -1,4 +1,4 @@
-#dre2 - An extremely fast, lightweight regex engine written in pure c.
+#dre2 - An extremely fast, lightweight regex engine written in c.
 
 ## Basics
 
