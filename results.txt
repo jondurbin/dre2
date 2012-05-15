@@ -52,7 +52,7 @@ Regex: Tom.{0,30}river|river.{0,30}Tom
 
 Engine | Matched |  Time
 --------------------------
-dre2   |    4    |  0.156s
+dre2   |    4    |  0.094s
 re2    |    4    |  0.152s
 egrep  |    4    |  0.036s  <= fastest
 perl   |    4    |  0.293s
@@ -64,7 +64,7 @@ Regex: "[^"]{0,30}[?!.]"
 
 Engine | Matched |  Time
 --------------------------
-dre2   |  5546   |  0.063s  <= fastest
+dre2   |  5546   |  0.044s  <= fastest
 re2    |  5540   |  0.091s
 egrep  |  5540   |  0.458s
 perl   |  5546   |  0.222s
@@ -76,7 +76,7 @@ Regex: ([A-Za-z]awyer|[A-Za-z]inn)[^a-zA-Z]
 
 Engine | Matched |  Time
 --------------------------
-dre2   |   639   |  0.233s
+dre2   |   639   |  0.174s
 re2    |   639   |  0.155s  <= fastest
 egrep  |   639   |  2.728s
 perl   |   639   |  2.203s
@@ -88,7 +88,7 @@ Regex: ([a-f](.[d-m].){0,2}[h-n]){2}
 
 Engine | Matched |  Time
 --------------------------
-dre2   |  61719  |  0.516s
+dre2   |  61719  |  0.321s
 re2    |  61719  |  0.172s  <= fastest
 egrep  |  61719  |  2.895s
 perl   |  61719  |  1.157s
@@ -100,7 +100,7 @@ Regex: [a-zA-Z]{0,4}ing[^a-zA-Z]
 
 Engine | Matched |  Time
 --------------------------
-dre2   |  73803  |  0.079s  <= fastest
+dre2   |  73803  |  0.061s  <= fastest
 re2    |  73803  |  0.152s
 egrep  |  73803  |  0.766s
 perl   |  73803  |  0.240s
@@ -112,7 +112,7 @@ Regex: [a-zA-Z]+ing
 
 Engine | Matched |  Time
 --------------------------
-dre2   |  81350  |  0.072s  <= fastest
+dre2   |  81350  |  0.056s  <= fastest
 re2    |  81350  |  0.163s
 egrep  |  81350  |  0.566s
 perl   |  81350  |  0.278s
@@ -124,9 +124,9 @@ Regex: .{0,3}(Tom|Sawyer|Huckleberry|Finn)
 
 Engine | Matched |  Time
 --------------------------
-dre2   |  2644   |  0.116s
+dre2   |  2644   |  0.072s  <= fastest
 re2    |  2644   |  0.155s
-egrep  |  2644   |  0.084s  <= fastest
+egrep  |  2644   |  0.084s
 perl   |  2644   |  3.195s
 ruby   |  2644   | 10.350s
 
@@ -136,9 +136,9 @@ Regex: Tom|Sawyer|Huckleberry|Finn
 
 Engine | Matched |  Time
 --------------------------
-dre2   |  2644   |  0.111s
+dre2   |  2644   |  0.074s  <= fastest
 re2    |  2644   |  0.168s
-egrep  |  2644   |  0.089s  <= fastest
+egrep  |  2644   |  0.089s
 perl   |  2644   |  0.280s
 ruby   |  2644   |  0.348s
 
@@ -148,7 +148,7 @@ Regex: Huck[a-zA-Z]+|Finn[a-zA-Z]+
 
 Engine | Matched |  Time
 --------------------------
-dre2   |   83    |  0.101s  <= fastest
+dre2   |   83    |  0.055s  <= fastest
 re2    |   83    |  0.154s
 egrep  |   83    |  0.596s
 perl   |   83    |  0.263s
@@ -160,7 +160,7 @@ Regex: Twain
 
 Engine | Matched |  Time
 --------------------------
-dre2   |   2373  |  0.041s
+dre2   |   2373  |  0.040s
 re2    |   2373  |  0.085s
 egrep  |   2373  |  0.031s  <= fastest
 perl   |   2373  |  0.191s
