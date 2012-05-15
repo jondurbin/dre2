@@ -204,9 +204,10 @@ dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *
 
   c = graph->c;
   if ( graph->min_length > 0 )
-    pch = memchr( input + graph->min_length - 1, c, length - graph->min_length );
+    pch = memchr( input + graph->min_length - 1, c, length - graph->min_length + 1 );
   else
     pch = input;
+
   while ( pch != NULL && pch - input <= length && *pch != '\0' )
   {
     if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_LEFT, length, r_temp, reachable, state ) ) != NULL )
