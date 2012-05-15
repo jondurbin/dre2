@@ -1899,7 +1899,7 @@ struct dre2_parse_return
 dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, int length, int pos, int **minimal, int *group_count )
 {
   int i, j, k;
-  int last_node;
+  int last_node, current_group;
   int *option_end, option_count;
   int mod;
   struct dre2_parse_return ret_val, res;
@@ -1910,7 +1910,8 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
   dre2_add_node( v, node_count, DRE2_GROUP_OPEN, minimal, false );
 
   *group_count = *group_count + 1;
-  ( *v )[*node_count - 1].group_id = *group_count - 1;
+  current_group = *group_count - 1;
+  ( *v )[*node_count - 1].group_id = current_group;
 
   ret_val.open = *node_count - 1;
 
@@ -1966,7 +1967,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
       dre2_add_neighbor( v, last_node, ret_val.close );
       free( option_end );
       option_end = NULL;
-      ( *v )[*node_count - 1].group_id = *group_count - 1;
+      ( *v )[*node_count - 1].group_id = current_group;
       return ret_val;
     } else if ( c == '|' )
     {
@@ -2192,7 +2193,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
 
   dre2_add_neighbor( v, last_node, *node_count - 1 );
 
-  ( *v )[*node_count - 1].group_id = *group_count - 1;
+  ( *v )[*node_count - 1].group_id = current_group;
 
   free( option_end );
   option_end = NULL;

@@ -29,9 +29,12 @@ dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos, int
   }
 
   if ( graph->v[id].c == DRE2_GROUP_OPEN && graph->v[id].group_id > 0 )
+  {
     ( *group_open )[graph->v[id].group_id - 1] = pos;
-  else if ( graph->v[id].c == DRE2_GROUP_CLOSE )
+  } else if ( graph->v[id].c == DRE2_GROUP_CLOSE )
+  {
     ( *group_close )[graph->v[id].group_id - 1] = pos;
+  }
 
   if ( offset )
   {
@@ -64,14 +67,14 @@ dre2_backtrack_match( struct dre2 *graph, unsigned char *input )
 
   pos = 0;
   if ( ( matched = dre2_backtrack_recursive( graph->original, input, pos, 0, &state, &group_open, &group_close ) ) )
-    printf( "Success!\n" );
-
-  for ( i = 1; i < graph->original->group_count; i++ )
   {
-    printf( "Group: ", i );
-    for ( j = group_open[i - 1]; j < group_close[i - 1]; j++ )
-      printf( "%c", input[j] );
-    printf( "\n" );
+    for ( i = 1; i < graph->original->group_count; i++ )
+    {
+      printf( "Group: ", i );
+      for ( j = group_open[i - 1]; j < group_close[i - 1]; j++ )
+        printf( "%c", input[j] );
+      printf( "\n" );
+    }
   }
   free( state ); state = NULL;
   free( group_open ); group_open = NULL;
