@@ -94,6 +94,11 @@ main( int argc, char *argv[] )
 
 ## DRE2 options:
 
+### Thread-safe - MUST be used in any multi-threaded application.
+```c
+  re = dre2_parse( regex_string, DRE2_THREAD_SAFE );
+```
+
 ### Full match - Entire string must match the regex:
 ```c
   re = dre2_parse( regex_string, DRE2_FULL_MATCH );
