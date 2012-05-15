@@ -137,6 +137,7 @@ dre2 {
   int *r_temp;                   // Temp next-reachable node array.
   int *reachable;                // Next-reachable node array.
   int *state;                    // Next-reachable node state lookup.
+  struct dre2 *original;         // Original graph - used only for backtracking.
 };
 
 

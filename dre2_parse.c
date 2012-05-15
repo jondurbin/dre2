@@ -659,6 +659,7 @@ cleanup_dre2( struct dre2 *graph )
   if ( graph->r_temp != NULL ) { free( graph->r_temp ); graph->r_temp = NULL; }
   if ( graph->reachable != NULL ) { free( graph->reachable ); graph->reachable = NULL; }
   if ( graph->state != NULL ) { free( graph->state ); graph->state = NULL; }
+  if ( graph->original != NULL ) { cleanup_dre2( graph->original ); }
   free( graph ); graph = NULL;
 }
 
@@ -2218,6 +2219,7 @@ dre2_parse( unsigned char *re, int options )
   graph->options = options;
   graph->starting_points = NULL;
   graph->starting_chars = NULL;
+  graph->original = NULL;
 
   v = NULL;
 
@@ -2269,8 +2271,15 @@ dre2_parse( unsigned char *re, int options )
     min_graph->starting_point = min_graph->count - 1;
   dre2_starting_chars( min_graph, new_minimal );
 
-  // Clean up the original graph's memory.
-  cleanup_dre2( graph );
+  // Clean up the original graph's memory if we don't need it.
+  if ( !( options & DRE2_SUBMATCH ) )
+  {
+    graph->original = NULL;
+    cleanup_dre2( graph );
+  } else
+  {
+    min_graph->original = graph;
+  }
 
   free( new_minimal );
   free( minimal_id );
