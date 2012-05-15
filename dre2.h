@@ -53,7 +53,7 @@ DRE2_OPTION
   DRE2_GREEDY = 1 << 0,          // Greedy match, used when we want info about the string that matched the regex.
   DRE2_FULL_MATCH = 1 << 1,      // Exact match, e.g. 'abc' matches 'abc' but not 'abcd'
   DRE2_NO_CASE = 1 << 2,         // Ignore case, e.g. 'a' matches 'a' or 'A'.
-  DRE2_SUBMATCH = 1 << 3,        // TODO, support submatch tracking and extraction.
+  DRE2_SUBMATCH = 1 << 3,        // Submatch tracking and extraction.
   DRE2_THREAD_SAFE = 1 << 4,     // Thread safe mode.
 };
 
@@ -103,6 +103,7 @@ dre2_node {
   int *possible;                 // Range of possible characters when using character classes.
   int *min_n;                    // Neighbors of this node in the minimal graph.
   int min_n_count;               // Number of neighbors in the minimal graph.
+  int group_id;                  // Group identifier for submatch extraction.
 };
 
 struct
@@ -138,6 +139,7 @@ dre2 {
   int *reachable;                // Next-reachable node array.
   int *state;                    // Next-reachable node state lookup.
   struct dre2 *original;         // Original graph - used only for backtracking.
+  int group_count;               // Number of groups in the regex.
 };
 
 
@@ -194,7 +196,7 @@ void dre2_skip_table( struct dre2 *graph );
 void dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node, struct dre2_parse_return *res, int **minimal );
 void dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, int **minimal );
 void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct dre2_parse_return *res, int min, int max, int **minimal );
-struct dre2_parse_return dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, int length, int pos, int **minimal );
+struct dre2_parse_return dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, int length, int pos, int **minimal, int *group_count );
 struct dre2 * dre2_parse( unsigned char *re, int options );
 void print_dre2( struct dre2 *graph );
 void print_reverse_dre2( struct dre2 *graph );

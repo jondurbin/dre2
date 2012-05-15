@@ -1896,7 +1896,7 @@ dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct d
 
 // Parsing algorithm.
 struct dre2_parse_return
-dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, int length, int pos, int **minimal )
+dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, int length, int pos, int **minimal, int *group_count )
 {
   int i, j, k;
   int last_node;
@@ -1908,6 +1908,10 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
 
   // Add the group open node.
   dre2_add_node( v, node_count, DRE2_GROUP_OPEN, minimal, false );
+
+  *group_count = *group_count + 1;
+  ( *v )[*node_count - 1].group_id = *group_count - 1;
+
   ret_val.open = *node_count - 1;
 
   // Which node was the preceeding node.
@@ -1924,7 +1928,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
     c = re[pos];
     if ( c == '(' )
     {
-      res = dre2_parse_recursive( v, node_count, re, length, pos + 1, minimal );
+      res = dre2_parse_recursive( v, node_count, re, length, pos + 1, minimal, group_count );
       if ( res.pos == -1 )
       {
         free( option_end );
@@ -1962,6 +1966,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
       dre2_add_neighbor( v, last_node, ret_val.close );
       free( option_end );
       option_end = NULL;
+      ( *v )[*node_count - 1].group_id = *group_count - 1;
       return ret_val;
     } else if ( c == '|' )
     {
@@ -2187,6 +2192,8 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
 
   dre2_add_neighbor( v, last_node, *node_count - 1 );
 
+  ( *v )[*node_count - 1].group_id = *group_count - 1;
+
   free( option_end );
   option_end = NULL;
 
@@ -2199,7 +2206,7 @@ dre2_parse( unsigned char *re, int options )
 {
   int i, j;
   struct dre2_node *v, *min_v;
-  int node_count;
+  int node_count, group_count;
   int length;
   int *minimal, *new_minimal, minimal_count, *minimal_id;
   struct dre2_parse_return ret;
@@ -2220,13 +2227,18 @@ dre2_parse( unsigned char *re, int options )
   graph->starting_points = NULL;
   graph->starting_chars = NULL;
   graph->original = NULL;
+  graph->r_temp = NULL;
+  graph->reachable = NULL;
+  graph->state = NULL;
 
   v = NULL;
 
   minimal = ( int * )malloc( sizeof( int ) );
   node_count = 0;
   length = strlen( re );
-  ret = dre2_parse_recursive( &v, &node_count, re, length, 0, &minimal );
+  group_count = 0;
+  ret = dre2_parse_recursive( &v, &node_count, re, length, 0, &minimal, &group_count );
+  graph->group_count = group_count;
   if ( ret.pos == -1 )
   {
     cleanup_nodes( &v, node_count );
@@ -2336,6 +2348,7 @@ dre2_parse( unsigned char *re, int options )
 
   if ( options & DRE2_THREAD_SAFE )
   {
+    printf( "HERE!\n" );
     min_graph->r_temp = NULL;
     min_graph->reachable = NULL;
     min_graph->state = NULL;
@@ -2372,7 +2385,10 @@ print_dre2( struct dre2 *graph )
       printf( "\n" );
     } else
     {
-      printf( "Node %d (%c): ", i, graph->v[i].c == DRE2_GROUP_OPEN || graph->v[i].c == DRE2_GROUP_CLOSE ? 'G' : graph->v[i].c );
+      if ( graph->v[i].c == DRE2_GROUP_OPEN || graph->v[i].c == DRE2_GROUP_CLOSE )
+        printf( "Node %d (G%d): ", graph->v[i].group_id );
+      else
+        printf( "Node %d (%c): ", i, graph->v[i].c );
     }
     for ( j = 0; j < graph->v[i].n_count; j++ )
       printf( "%d, ", graph->v[i].n[j] );
