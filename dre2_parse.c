@@ -622,25 +622,25 @@ cleanup_nodes( struct dre2_node **v, int node_count )
   {
     for ( i = 0; i < node_count; i++ )
     {
-      if ( v[0][i].n != NULL )
+      if ( ( *v )[i].n != NULL )
       {
-        free( v[0][i].n );
-        v[0][i].n = NULL;
+        free( ( *v )[i].n );
+        ( *v )[i].n = NULL;
       }
-      if ( v[0][i].p != NULL )
+      if ( ( *v )[i].p != NULL )
       {
-        free( v[0][i].p );
-        v[0][i].p = NULL;
+        free( ( *v )[i].p );
+        ( *v )[i].p = NULL;
       }
-      if ( v[0][i].c == DRE2_CHAR_CLASS )
+      if ( ( *v )[i].c == DRE2_CHAR_CLASS )
       {
-        free( v[0][i].possible );
-        v[0][i].possible = NULL;
+        free( ( *v )[i].possible );
+        ( *v )[i].possible = NULL;
       }
-      if ( v[0][i].min_n != NULL )
+      if ( ( *v )[i].min_n != NULL )
       {
-        free( v[0][i].min_n );
-        v[0][i].min_n = NULL;
+        free( ( *v )[i].min_n );
+        ( *v )[i].min_n = NULL;
       }
     }
     free( *v );
@@ -669,30 +669,30 @@ dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct d
   int size, last;
   struct dre2_path *path, *next_path;
 
-  size = paths[0][id].count;
-  last = paths[0][id].nodes[paths[0][id].count - 1];
+  size = ( *paths )[id].count;
+  last = ( *paths )[id].nodes[( *paths )[id].count - 1];
 
   for ( i = 0; i < graph->v[last].min_n_count; i++ )
   {
-    path = &paths[0][id];
+    path = &( *paths )[id];
     if ( i == 0 )
     {
       // For the first possible node, just add it to the current path.
-      paths[0][id].count++;
-      paths[0][id].nodes[paths[0][id].count - 1] = graph->v[last].min_n[i];
+      ( *paths )[id].count++;
+      ( *paths )[id].nodes[( *paths )[id].count - 1] = graph->v[last].min_n[i];
       dre2_find_paths_recursive( graph, id, path_count, paths );
     } else
     {
       // For the other nodes, split the path.
       *path_count = *path_count + 1;
       *paths = ( struct dre2_path * )realloc( *paths, sizeof( struct dre2_path ) * *path_count );
-      next_path = &paths[0][*path_count - 1];
+      next_path = &( *paths )[*path_count - 1];
       next_path->count = size + 1;
       next_path->nodes = ( int * )malloc( sizeof( int ) * graph->count );
 
       // Copy the previous nodes and add the current one.
       for ( j = 0; j < size; j++ )
-        next_path->nodes[j] = paths[0][id].nodes[j];
+        next_path->nodes[j] = ( *paths )[id].nodes[j];
       next_path->nodes[size] = graph->v[last].min_n[i];
       dre2_find_paths_recursive( graph, *path_count - 1, path_count, paths );
     }
@@ -1121,9 +1121,9 @@ dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int mini
 void
 dre2_min_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
 {
-  if ( visited[0][id] == true )
+  if ( ( *visited )[id] == true )
     return;
-  visited[0][id] = true;
+  ( *visited )[id] = true;
 
   int i;
   for ( i = 0; i < graph->v[id].n_count; i++ )
@@ -1134,11 +1134,11 @@ dre2_min_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
       if ( neighbor->c == DRE2_GROUP_OPEN || neighbor->c == DRE2_GROUP_CLOSE )
       {
         if ( graph->v[id].n[i] == graph->count - 1 )
-          reachable[0][graph->v[id].n[i]] = true;
+          ( *reachable )[graph->v[id].n[i]] = true;
         dre2_min_reachable( graph, reachable, visited, graph->v[id].n[i] );
       } else
       {
-        reachable[0][graph->v[id].n[i]] = true;
+        ( *reachable )[graph->v[id].n[i]] = true;
       }
     }
   }
@@ -1148,9 +1148,9 @@ dre2_min_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
 void
 dre2_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
 {
-  if ( visited[0][id] == true )
+  if ( ( *visited )[id] == true )
     return;
-  visited[0][id] = true;
+  ( *visited )[id] = true;
 
   int i;
   for ( i = 0; i < graph->v[id].n_count; i++ )
@@ -1161,11 +1161,11 @@ dre2_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
     if ( neighbor->c == DRE2_GROUP_OPEN || neighbor->c == DRE2_GROUP_CLOSE )
     {
       if ( graph->v[id].n[i] == graph->count - 1 )
-        reachable[0][graph->v[id].n[i]] = true;
+        ( *reachable )[graph->v[id].n[i]] = true;
       dre2_reachable( graph, reachable, visited, graph->v[id].n[i] );
     } else
     {
-      reachable[0][graph->v[id].n[i]] = true;
+      ( *reachable )[graph->v[id].n[i]] = true;
     }
   }
 }
@@ -1189,7 +1189,7 @@ dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node 
   min_visited = ( int * )malloc( sizeof( int ) * graph->count );
 
   for ( i = 0; i < graph->count; i++ )
-    new_minimal[0][i] = false;
+    ( *new_minimal )[i] = false;
 
   node_count = 0;
   *new_minimal_count = 0;
@@ -1211,19 +1211,19 @@ dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node 
       // Add node to our min tree.
       dre2_add_node( new_nodes, &node_count, graph->v[i].c, &temp_minimal, true );
 
-      new_nodes[0][node_count - 1].min_n_count = 0;
-      new_nodes[0][node_count - 1].min_n = NULL;
+      ( *new_nodes )[node_count - 1].min_n_count = 0;
+      ( *new_nodes )[node_count - 1].min_n = NULL;
       if ( minimal[i] )
       {
-        new_minimal[0][node_count - 1] = true;
+        ( *new_minimal )[node_count - 1] = true;
         *new_minimal_count = *new_minimal_count + 1;
-        minimal_id[0][*new_minimal_count - 1] = node_count - 1;
+        ( *minimal_id )[*new_minimal_count - 1] = node_count - 1;
       }
       graph->v[i].min_id = node_count - 1;
       if ( graph->v[i].c == DRE2_CHAR_CLASS )
       {
         for ( j = 0; j < RANGE; j++ )
-          new_nodes[0][node_count - 1].possible[j] = graph->v[i].possible[j];
+          ( *new_nodes )[node_count - 1].possible[j] = graph->v[i].possible[j];
       }
 
       // Find the reachable nodes.
@@ -1233,10 +1233,10 @@ dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node 
           dre2_add_neighbor( new_nodes, node_count - 1, j );
         if ( min_reachable[j] && minimal[j] )
         {
-          new_nodes[0][node_count - 1].min_n_count++;
-          if ( new_nodes[0][node_count - 1].min_n == NULL )
-            new_nodes[0][node_count - 1].min_n = ( int * )malloc( sizeof( int ) * graph->count );
-          new_nodes[0][node_count - 1].min_n[new_nodes[0][node_count - 1].min_n_count - 1] = j;
+          ( *new_nodes )[node_count - 1].min_n_count++;
+          if ( ( *new_nodes )[node_count - 1].min_n == NULL )
+            ( *new_nodes )[node_count - 1].min_n = ( int * )malloc( sizeof( int ) * graph->count );
+          ( *new_nodes )[node_count - 1].min_n[( *new_nodes )[node_count - 1].min_n_count - 1] = j;
         }
       }
     }
@@ -1245,14 +1245,14 @@ dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node 
   // Update the node IDs.
   for ( i = 0; i < node_count; i++ )
   {
-    for ( j = 0; j < new_nodes[0][i].n_count; j++ )
-      new_nodes[0][i].n[j] = graph->v[new_nodes[0][i].n[j]].min_id;
+    for ( j = 0; j < ( *new_nodes )[i].n_count; j++ )
+      ( *new_nodes )[i].n[j] = graph->v[( *new_nodes )[i].n[j]].min_id;
   }
 
   for ( i = 0; i < *new_minimal_count; i++ )
   {
-    for ( j = 0; j < new_nodes[0][minimal_id[0][i]].min_n_count; j++ )
-      new_nodes[0][minimal_id[0][i]].min_n[j] = graph->v[new_nodes[0][minimal_id[0][i]].min_n[j]].min_id;
+    for ( j = 0; j < ( *new_nodes )[( *minimal_id )[i]].min_n_count; j++ )
+      ( *new_nodes )[( *minimal_id )[i]].min_n[j] = graph->v[( *new_nodes )[( *minimal_id )[i]].min_n[j]].min_id;
   }
 
   // Setup the minimized graph.
@@ -1520,7 +1520,7 @@ dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost *cost )
 void
 dre2_remove_minimal( int **minimal, int id )
 {
-  minimal[0][id] = false;
+  ( *minimal )[id] = false;
 }
 
 // Add a minimal bit.
@@ -1528,7 +1528,7 @@ void
 dre2_add_minimal( int **minimal, int *node_count )
 {
   *minimal = ( int * )realloc( *minimal, sizeof( int ) * *node_count );
-  minimal[0][*node_count - 1] = true;
+  ( *minimal )[*node_count - 1] = true;
 }
 
 // Add a node.
@@ -1550,22 +1550,22 @@ dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal, int 
   }
 
   // Set this node's data.
-  v[0][*node_count - 1].c = c;
+  ( *v )[*node_count - 1].c = c;
 
   // Initialize neighbor array and count.
-  v[0][*node_count - 1].n = ( int * )malloc( sizeof( int ) );
-  v[0][*node_count - 1].n_count = 0;
+  ( *v )[*node_count - 1].n = ( int * )malloc( sizeof( int ) );
+  ( *v )[*node_count - 1].n_count = 0;
 
   // Initalize the parent array and count.
-  v[0][*node_count - 1].p = ( int * )malloc( sizeof( int ) );
-  v[0][*node_count - 1].p_count = 0;
+  ( *v )[*node_count - 1].p = ( int * )malloc( sizeof( int ) );
+  ( *v )[*node_count - 1].p_count = 0;
 
   // Allocate some memory for character class possible lookup list.
   if ( c == DRE2_CHAR_CLASS )
-    v[0][*node_count - 1].possible = ( int * )malloc( sizeof( int ) * RANGE );
+    ( *v )[*node_count - 1].possible = ( int * )malloc( sizeof( int ) * RANGE );
 
   // Initialize min_n to NULL.
-  v[0][*node_count - 1].min_n = NULL;
+  ( *v )[*node_count - 1].min_n = NULL;
 
   dre2_add_minimal( minimal, node_count );
 }
@@ -1575,9 +1575,9 @@ void
 dre2_add_neighbor( struct dre2_node **v, int origin, int dest )
 {
   // Add the neighbor.
-  v[0][origin].n_count++;
-  v[0][origin].n = ( int * )realloc( v[0][origin].n, sizeof( int ) * v[0][origin].n_count );
-  v[0][origin].n[v[0][origin].n_count - 1] = dest;
+  ( *v )[origin].n_count++;
+  ( *v )[origin].n = ( int * )realloc( ( *v )[origin].n, sizeof( int ) * ( *v )[origin].n_count );
+  ( *v )[origin].n[( *v )[origin].n_count - 1] = dest;
 }
 
 // Add the parent nodes
@@ -1734,28 +1734,28 @@ dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node, str
     dre2_duplicate_node( v, node_count, i, minimal );
     if ( i != res->open )
     {
-      v[0][*node_count - 1].p_count = v[0][i].p_count;
-      v[0][*node_count - 1].p = ( int * )malloc( sizeof( int ) * v[0][i].p_count );
-      for ( j = 0; j < v[0][i].p_count; j++ )
+      ( *v )[*node_count - 1].p_count = ( *v )[i].p_count;
+      ( *v )[*node_count - 1].p = ( int * )malloc( sizeof( int ) * ( *v )[i].p_count );
+      for ( j = 0; j < ( *v )[i].p_count; j++ )
       {
-        diff = v[0][i].p[j] - res->open;
-        v[0][*node_count - 1].p[j] = *last_node + diff + 1;
+        diff = ( *v )[i].p[j] - res->open;
+        ( *v )[*node_count - 1].p[j] = *last_node + diff + 1;
       }
     } else
     {
-      v[0][*node_count - 1].p_count = 1;
-      v[0][*node_count - 1].p = ( int * )malloc( sizeof( int ) );
-      v[0][*node_count - 1].p[0] = res->close;
+      ( *v )[*node_count - 1].p_count = 1;
+      ( *v )[*node_count - 1].p = ( int * )malloc( sizeof( int ) );
+      ( *v )[*node_count - 1].p[0] = res->close;
     }
 
     if ( i != res->close )
     {
-      v[0][*node_count - 1].n_count = v[0][i].n_count;
-      v[0][*node_count - 1].n = ( int * )malloc( sizeof( int ) * v[0][i].n_count );
-      for ( j = 0; j < v[0][i].n_count; j++ )
+      ( *v )[*node_count - 1].n_count = ( *v )[i].n_count;
+      ( *v )[*node_count - 1].n = ( int * )malloc( sizeof( int ) * ( *v )[i].n_count );
+      for ( j = 0; j < ( *v )[i].n_count; j++ )
       {
-        diff = v[0][i].n[j] - res->open;
-        v[0][*node_count - 1].n[j] = *last_node + diff + 1;
+        diff = ( *v )[i].n[j] - res->open;
+        ( *v )[*node_count - 1].n[j] = *last_node + diff + 1;
       }
     }
   }
@@ -1768,10 +1768,10 @@ dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node, str
 void
 dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, int **minimal )
 {
-  dre2_add_node( v, node_count, v[0][last_node].c, minimal, false );
+  dre2_add_node( v, node_count, ( *v )[last_node].c, minimal, false );
   dre2_add_minimal( minimal, node_count );
-  if ( v[0][last_node].c == DRE2_CHAR_CLASS )
-    memcpy( v[0][*node_count - 1].possible, v[0][last_node].possible, RANGE * sizeof( int ) );
+  if ( ( *v )[last_node].c == DRE2_CHAR_CLASS )
+    memcpy( ( *v )[*node_count - 1].possible, ( *v )[last_node].possible, RANGE * sizeof( int ) );
 }
 
 // Setup a character range, e.g. a{2,3}
@@ -1783,7 +1783,7 @@ dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct d
   int max_position;
   int *parents, parent_count;
 
-  if ( v[0][*last_node].c == DRE2_GROUP_CLOSE )
+  if ( ( *v )[*last_node].c == DRE2_GROUP_CLOSE )
   {
     int length = res->close - res->open + 1;
     if ( max == DRE2_INFINITE )
@@ -1802,7 +1802,7 @@ dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct d
   {
     for ( i = 0; i < *last_node; i++ )
     {
-      struct dre2_node *node = &v[0][i];
+      struct dre2_node *node = &( *v )[i];
       for ( j = 0; j < node->n_count; j++ )
       {
         if ( ( group && node->n[j] == res->open ) || ( node->n[j] == *last_node ) )
@@ -1812,7 +1812,7 @@ dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct d
         }
       }
     }
-    if ( v[0][*last_node].c == DRE2_GROUP_CLOSE )
+    if ( ( *v )[*last_node].c == DRE2_GROUP_CLOSE )
     {
       for ( i = res->open; i <= res->close; i++ )
         dre2_remove_minimal( minimal, i );
@@ -1981,7 +1981,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
       dre2_add_neighbor( v, last_node, *node_count - 1 );
 
       last_node = *node_count - 1;
-      pos = dre2_character_class( &v[0][last_node], re, pos + 1 );
+      pos = dre2_character_class( &( *v )[last_node], re, pos + 1 );
       if ( pos == false )
       {
         free( option_end );
@@ -2005,7 +2005,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
       dre2_add_neighbor( v, last_node, *node_count - 1 );
 
       last_node = *node_count - 1;
-      dre2_predefined_class( &v[0][last_node], &re[pos + 1], true, false );
+      dre2_predefined_class( &( *v )[last_node], &re[pos + 1], true, false );
       pos++;
       mod = true;
     } else if ( c == '.' )
@@ -2029,7 +2029,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
         return ret_val;
       }
       mod = false;
-      if ( v[0][last_node].c == DRE2_GROUP_CLOSE )
+      if ( ( *v )[last_node].c == DRE2_GROUP_CLOSE )
       {
         // Add link from group open to close and vice versa.
         dre2_add_neighbor( v, res.open, res.close );
@@ -2038,14 +2038,14 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
           dre2_remove_minimal( minimal, i );
       } else
       {
-        dre2_add_node( v, node_count, v[0][last_node].c, minimal, false );
-        if ( v[0][last_node].c == DRE2_CHAR_CLASS )
+        dre2_add_node( v, node_count, ( *v )[last_node].c, minimal, false );
+        if ( ( *v )[last_node].c == DRE2_CHAR_CLASS )
         {
           for ( i = 0; i < RANGE; i++ )
-            v[0][*node_count - 1].possible[i] = v[0][last_node].possible[i];
+            ( *v )[*node_count - 1].possible[i] = ( *v )[last_node].possible[i];
         }
 
-        v[0][last_node].c = DRE2_GROUP_OPEN;
+        ( *v )[last_node].c = DRE2_GROUP_OPEN;
 
         dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
 
@@ -2080,21 +2080,21 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
       }
       mod = false;
       // If it's a group, add a link from group open to group close.
-      if ( v[0][last_node].c == DRE2_GROUP_CLOSE )
+      if ( ( *v )[last_node].c == DRE2_GROUP_CLOSE )
       {
         dre2_add_neighbor( v, res.open, res.close );
         for ( i = res.open; i <= res.close; i++ )
           dre2_remove_minimal( minimal, i );
       } else
       {
-        dre2_add_node( v, node_count, v[0][last_node].c, minimal, false );
-        if ( v[0][last_node].c == DRE2_CHAR_CLASS )
+        dre2_add_node( v, node_count, ( *v )[last_node].c, minimal, false );
+        if ( ( *v )[last_node].c == DRE2_CHAR_CLASS )
         {
           for ( i = 0; i < RANGE; i++ )
-            v[0][*node_count - 1].possible[i] = v[0][last_node].possible[i];
+            ( *v )[*node_count - 1].possible[i] = ( *v )[last_node].possible[i];
         }
 
-        v[0][last_node].c = DRE2_GROUP_OPEN;
+        ( *v )[last_node].c = DRE2_GROUP_OPEN;
         dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
 
         // Add a link from group open to node.
@@ -2125,7 +2125,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
       }
       mod = false;
 
-      if ( v[0][last_node].c == DRE2_GROUP_CLOSE )
+      if ( ( *v )[last_node].c == DRE2_GROUP_CLOSE )
         dre2_add_neighbor( v, res.close, res.open );
       else
         dre2_add_neighbor( v, last_node, last_node );

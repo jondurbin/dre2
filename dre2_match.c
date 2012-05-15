@@ -187,7 +187,7 @@ dre2_matched_substring( unsigned char *input, struct dre2_match_value *value, un
   size = value->end_pos - value->start_pos;
   if ( size <= 0 )
   {
-    match[0][0] = '\0';
+    ( *match )[0] = '\0';
     return;
   }
   sprintf( *match, "%.*s", size, input + value->start_pos );
