@@ -354,7 +354,7 @@ dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int 
         if ( ( result = dre2_matcher( graph, input, pch, graph->starting_points[i], DRE2_RIGHT, length, r_temp, reachable, state ) ) != NULL )
         {
           ret_val.matched = true;
-          ret_val.end_pos = result - input; 
+          ret_val.end_pos = result - input + 1; 
           return ret_val;
         }
       }
