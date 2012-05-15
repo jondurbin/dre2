@@ -54,6 +54,7 @@ DRE2_OPTION
   DRE2_FULL_MATCH = 1 << 1,      // Exact match, e.g. 'abc' matches 'abc' but not 'abcd'
   DRE2_NO_CASE = 1 << 2,         // Ignore case, e.g. 'a' matches 'a' or 'A'.
   DRE2_SUBMATCH = 1 << 3,        // TODO, support submatch tracking and extraction.
+  DRE2_THREAD_SAFE = 1 << 4,     // Thread safe mode.
 };
 
 #ifndef true
@@ -133,6 +134,9 @@ dre2 {
   int *starting_points;          // If all else fails, match from multiple nodes using best node in each path.
   int starting_count;            // Number of nodes for above.
   int options;                   // Options, e.g. greedy, ignore case, etc.
+  int *r_temp;                   // Temp next-reachable node array.
+  int *reachable;                // Next-reachable node array.
+  int *state;                    // Next-reachable node state lookup.
 };
 
 
@@ -140,12 +144,12 @@ dre2 {
 int dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c );
 
 // Functions to check whether or not a string matches the regex.
-unsigned char *dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable );
-struct dre2_match_value dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-struct dre2_match_value dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-struct dre2_match_value dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
-struct dre2_match_value dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable );
+unsigned char *dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
 struct dre2_match_value dre2_match( struct dre2 *graph, unsigned char *input );
 
 // Generate an escaped regex from an input string.
