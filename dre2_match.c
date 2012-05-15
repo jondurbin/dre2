@@ -394,7 +394,7 @@ dre2_full_match( struct dre2 *graph, unsigned char *input, int length, int *r_te
 struct dre2_match_value
 dre2_match( struct dre2 *graph, unsigned char *input )
 {
-  int length;
+  int i, length;
   struct dre2_match_value result;
   int *r_temp, *reachable, *state;
 
@@ -405,7 +405,6 @@ dre2_match( struct dre2 *graph, unsigned char *input )
   if ( length < graph->min_length )
     return result;
 
-  // Allocate some memory if needed.
   if ( graph->options & DRE2_THREAD_SAFE )
   {
     r_temp = ( int * )malloc( sizeof( int ) * graph->count );
@@ -442,7 +441,7 @@ dre2_match( struct dre2 *graph, unsigned char *input )
         break;
     }
   }
-  if ( graph->options & DRE2_THREAD_SAFE )
+  if ( ( graph->options & DRE2_THREAD_SAFE ) || graph->count >= RANGE )
   {
     free( reachable ); reachable = NULL;
     free( r_temp ); r_temp = NULL;

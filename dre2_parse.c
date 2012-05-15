@@ -2218,9 +2218,6 @@ dre2_parse( unsigned char *re, int options )
   graph->options = options;
   graph->starting_points = NULL;
   graph->starting_chars = NULL;
-  graph->r_temp = NULL;
-  graph->reachable = NULL;
-  graph->state = NULL;
 
   v = NULL;
 
@@ -2328,16 +2325,16 @@ dre2_parse( unsigned char *re, int options )
     }
   }
 
-  if ( !( options & DRE2_THREAD_SAFE ) )
-  {
-    min_graph->r_temp = ( int * )malloc( sizeof( int ) * min_graph->count );
-    min_graph->reachable = ( int * )malloc( sizeof( int ) * min_graph->count );
-    min_graph->state = ( int * )calloc( min_graph->count, sizeof( int ) );
-  } else
+  if ( options & DRE2_THREAD_SAFE )
   {
     min_graph->r_temp = NULL;
     min_graph->reachable = NULL;
     min_graph->state = NULL;
+  } else
+  {
+    min_graph->r_temp = ( int * )malloc( sizeof( int ) * min_graph->count );
+    min_graph->reachable = ( int * )malloc( sizeof( int ) * min_graph->count );
+    min_graph->state = ( int * )calloc( min_graph->count, sizeof( int ) );
   }
 
   return min_graph;
