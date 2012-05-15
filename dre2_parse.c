@@ -593,7 +593,7 @@ dre2_range( unsigned char *re, int length, int pos )
     printf("Invalid range, min is greater than max!\n");
     return ret;
   }
-  if ( min > 50 || max > 50 )
+  if ( min > 100 || max > 100 )
   {
     printf( "Way too high of a range, use + or *.\n" );
     return ret;
