@@ -142,35 +142,14 @@ dre2 {
   int group_count;               // Number of groups in the regex.
 };
 
-
-// True/False function determining if a node matches the specified char.
-int dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c );
-
-// Functions to check whether or not a string matches the regex.
-unsigned char *dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable, int *state );
-struct dre2_match_value dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
-struct dre2_match_value dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
-struct dre2_match_value dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
-struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
-struct dre2_match_value dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
-struct dre2_match_value dre2_match( struct dre2 *graph, unsigned char *input );
-
-// Generate an escaped regex from an input string.
-unsigned char * dre2_escaped( unsigned char *re );
-
-// Various utility functions.
+unsigned char *dre2_escaped( unsigned char *re );
 int dre2_binsearch( int *values, int min, int max, int key );
 int dre2_largest( int *values, int length );
 int dre2_contains_int( int *values, int length, int key );
 int dre2_contains_char( unsigned char *string, unsigned char c );
-int string_to_int( unsigned char *s );
-
-// Sets the flag for a node when using a predefined class, e.g. '\a'
 void dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action, int part_of_class );
-
-// Sets the possible characters when in a character class, e.g. [a-z]
 int dre2_character_class( struct dre2_node *node, unsigned char *re, int s );
-
+int string_to_int( unsigned char *s );
 struct dre2_range_return dre2_range( unsigned char *re, int length, int pos );
 void cleanup_nodes( struct dre2_node **v, int node_count );
 void cleanup_dre2( struct dre2 *graph );
@@ -197,7 +176,18 @@ void dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node
 void dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, int **minimal );
 void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct dre2_parse_return *res, int min, int max, int **minimal );
 struct dre2_parse_return dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, int length, int pos, int **minimal, int *group_count );
-struct dre2 * dre2_parse( unsigned char *re, int options );
+struct dre2 *dre2_parse( unsigned char *re, int options );
 void print_dre2( struct dre2 *graph );
 void print_reverse_dre2( struct dre2 *graph );
-void dre2_matched_substring( unsigned char *input, struct dre2_match_value *value, unsigned char **match );
+int dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c );
+unsigned char *dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable, int *state );
+void dre2_matched_substring( unsigned char *input, struct dre2_match_value *value, unsigned char ** );
+struct dre2_match_value dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_full_match( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
+struct dre2_match_value dre2_match( struct dre2 *graph, unsigned char *input );
+int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos, int id, int **state, int **group_open, int **group_close );
+void dre2_backtrack_match( struct dre2 *graph, unsigned char *input, unsigned char ***submatches );
