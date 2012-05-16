@@ -1,7 +1,6 @@
 #include "dre2.h"
 
-int
-main( int argc, char *argv[] )
+int main( int argc, char *argv[] )
 {
   struct dre2 *re;                  // Pointer to regex digraph object.
   unsigned char *buf;               // Buffer to hold input strings.
