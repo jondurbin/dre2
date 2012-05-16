@@ -2175,6 +2175,7 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   struct dre2_node *v, *min_v;
   int node_count, group_count;
   int length;
+  int all_minimal;
   int *minimal, *new_minimal, minimal_count, *minimal_id;
   struct dre2_parse_return ret;
   struct dre2 *min_graph, *graph;
@@ -2243,10 +2244,28 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   dre2_skip_table( min_graph );
 
   // Find the best starting point and chars.
+  all_minimal = true;
   if ( options & DRE2_GREEDY )
-    min_graph->starting_point = 0;
-  else
+  {
+    for ( i = 0; i < min_graph->count; i++ )
+    {
+      if ( !new_minimal[i] )
+      {
+        all_minimal = false;
+        break;
+      } else if ( dre2_contains_int( min_graph->v[i].n, min_graph->v[i].n_count, i ) )
+      {
+        all_minimal = false;
+        break;
+      }
+    }
+    if ( !all_minimal )
+      min_graph->starting_point = 0;
+  }
+  if ( all_minimal || !( options & DRE2_GREEDY ) )
+  {
     min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
+  }
 
 //  if ( min_graph->starting_point == 1 )
 //    min_graph->starting_point = 0;
