@@ -15,7 +15,7 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
     return true;
 
   // If we are past the end of input, we can't match, return false.
-  if ( pos > strlen( input ) )
+  if ( *tp == '\0' && graph->v[id].c != DRE2_GROUP_OPEN && graph->v[id].c != DRE2_GROUP_CLOSE )
     return false;
 
   // Make sure we haven't already tried this node.
@@ -26,9 +26,10 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
   // Match the input character if it's not a group.
   if ( graph->v[id].c != DRE2_GROUP_OPEN && graph->v[id].c != DRE2_GROUP_CLOSE )
   {
-    if ( !dre2_char_matches( graph, &graph->v[id], *tp ) )
+    if ( ( graph->v[id].c == DRE2_EOF && ( ( *tp == ' ' && pos >= strlen( input ) - 1 ) || *tp == '\0' ) ) || dre2_char_matches( graph, &graph->v[id], *tp ) )
+      offset = 1;
+    else
       return false;
-    offset = 1;
   } else
   {
     offset = 0;
@@ -61,6 +62,10 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
       return true;
   }
 
+  // Revert state table on failure as well.
+  for ( i = 0; i < graph->count; i++ )
+    ( *state )[i] = false;
+
   // Revert group open/close on failure.
   if ( graph->v[id].c == DRE2_GROUP_OPEN && graph->v[id].group_id > 0 )
   {
@@ -73,13 +78,12 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
 }
 
 // Perform backtracking match, returning submatch info (if any)
-unsigned char **dre2_backtrack_match( struct dre2 *graph, unsigned char *input )
+void dre2_backtrack_match( struct dre2 *graph, unsigned char *input, unsigned char ***submatches )
 {
   int i, j;
   int matched, pos;
   int *state;
   int *group_open, *group_close;
-  unsigned char **submatches;
 
   // Allocate some memory for the state table to ensure we don't ever get in an infinite loop.
   state = ( int * )calloc( graph->original->count, sizeof( int ) );
@@ -89,14 +93,9 @@ unsigned char **dre2_backtrack_match( struct dre2 *graph, unsigned char *input )
   {
     group_open = ( int * )calloc( graph->original->group_count, sizeof( int ) );
     group_close = ( int * )calloc( graph->original->group_count, sizeof( int ) );
-    submatches = ( unsigned char ** )calloc( graph->original->group_count, sizeof( unsigned char * ) );
-    for ( i = 1; i < graph->original->group_count; i++ )
-      submatches[i - 1] = NULL;
   } else
   {
-    submatches = NULL;
-    group_open = NULL;
-    group_close = NULL;
+    return;
   }
 
   if ( ( matched = dre2_backtrack_recursive( graph->original, input, 0, 0, &state, &group_open, &group_close ) ) )
@@ -104,10 +103,7 @@ unsigned char **dre2_backtrack_match( struct dre2 *graph, unsigned char *input )
     for ( i = 1; i < graph->original->group_count; i++ )
     {
       if ( group_close[i - 1] > group_open[i - 1] )
-      {
-        submatches[i - 1] = ( unsigned char * )calloc( group_close[i - 1] - group_open[i - 1] + 1, sizeof( unsigned char ) );
-        sprintf( submatches[i - 1], "%.*s", group_close[i - 1] - group_open[i - 1], input + group_open[i - 1] );
-      }
+        sprintf( ( *submatches )[i - 1], "%.*s", group_close[i - 1] - group_open[i - 1], input + group_open[i - 1] );
     }
   }
 
@@ -118,6 +114,4 @@ unsigned char **dre2_backtrack_match( struct dre2 *graph, unsigned char *input )
     free( group_open ); group_open = NULL;
     free( group_close ); group_close = NULL;
   }
-
-  return submatches;
 }
