@@ -1,8 +1,7 @@
 #include "dre2.h"
 
 // Match a single node.
-int
-dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c )
+int dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c )
 {
   if ( node->c >= 0 )
   {
@@ -71,8 +70,7 @@ dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c )
 }
 
 // Matcher process.
-unsigned char *
-dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable, int *state )
+unsigned char *dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable, int *state )
 {
   int i, j, k;
   int *swapper, *next_nodes;
@@ -179,8 +177,7 @@ dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input
 }
 
 // Extract the matching portion of the regex.
-void
-dre2_matched_substring( unsigned char *input, struct dre2_match_value *value, unsigned char **match )
+void dre2_matched_substring( unsigned char *input, struct dre2_match_value *value, unsigned char **match )
 {
   int size;
 
@@ -195,8 +192,7 @@ dre2_matched_substring( unsigned char *input, struct dre2_match_value *value, un
 
 
 // Match when there is a single character and single node, horspool.
-struct dre2_match_value
-dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
+struct dre2_match_value dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
 {
   int i;
   unsigned char c, *pch, *result;
@@ -224,8 +220,7 @@ dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *
 }
 
 // Match when there is a single character and single node.
-struct dre2_match_value
-dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
+struct dre2_match_value dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
 {
   unsigned char c, *pch, *result;
   struct dre2_match_value ret_val;
@@ -263,8 +258,7 @@ dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, i
 }
 
 // Match when there is a single node but multiple characters, horspool.
-struct dre2_match_value
-dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
+struct dre2_match_value dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
 {
   unsigned char *pch, *result;
   struct dre2_match_value ret_val;
@@ -293,8 +287,7 @@ dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *input, int length, int *
 }
 
 // Match when there is a single node but multiple characters.
-struct dre2_match_value
-dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
+struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
 {
   unsigned char *pch, *result;
   struct dre2_match_value ret_val;
@@ -321,7 +314,7 @@ dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, i
         if ( ( result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable, state ) ) != NULL )
         {
           ret_val.matched = true;
-          ret_val.end_pos = pch - input;
+          ret_val.end_pos = result - input + 1;
           return ret_val;
         }
       }
@@ -335,8 +328,7 @@ dre2_sn_mc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, i
 }
 
 // Match when there are multiple nodes.
-struct dre2_match_value
-dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
+struct dre2_match_value dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
 {
   int i;
   unsigned char *pch, *result;
@@ -369,8 +361,7 @@ dre2_mn( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int 
 }
 
 // Check if the string is a complete match.
-struct dre2_match_value
-dre2_full_match( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
+struct dre2_match_value dre2_full_match( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state )
 {
   unsigned char *pch, *result;
   struct dre2_match_value ret_val;
@@ -392,8 +383,7 @@ dre2_full_match( struct dre2 *graph, unsigned char *input, int length, int *r_te
 }
 
 // Regex match driver.
-struct dre2_match_value
-dre2_match( struct dre2 *graph, unsigned char *input )
+struct dre2_match_value dre2_match( struct dre2 *graph, unsigned char *input )
 {
   int i, length;
   struct dre2_match_value result;
