@@ -185,9 +185,10 @@ void dre2_matched_substring( unsigned char *input, struct dre2_match_value *valu
   if ( size <= 0 )
   {
     ( *match )[0] = '\0';
-    return;
+  } else
+  {
+    sprintf( *match, "%.*s", size, input + value->start_pos );
   }
-  sprintf( *match, "%.*s", size, input + value->start_pos );
 }
 
 
@@ -303,7 +304,7 @@ struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, in
       {
         ret_val.matched = true;
         ret_val.start_pos = pch - input;
-        ret_val.end_pos = result - input;
+        ret_val.end_pos = result - input + 1;
         return ret_val;
       }
     } else
