@@ -37,8 +37,7 @@ const int dre2_frequency[RANGE] = {
 };
 
 // Create an escaped string, optionally with skip-matching.
-unsigned char *
-dre2_escaped( unsigned char *re )
+unsigned char *dre2_escaped( unsigned char *re )
 {
   unsigned char *buffer, *escaped, *ptr;
   int length;
@@ -95,8 +94,7 @@ dre2_escaped( unsigned char *re )
 }
 
 // Determine if a sorted array contains an item.
-int
-dre2_binsearch( int *values, int min, int max, int key )
+int dre2_binsearch( int *values, int min, int max, int key )
 {
   int mid;
 
@@ -112,8 +110,7 @@ dre2_binsearch( int *values, int min, int max, int key )
 }
 
 // Determine the largest element of an array.
-int
-dre2_largest( int *values, int length )
+int dre2_largest( int *values, int length )
 {
   int i, largest, index;
   largest = -1;
@@ -129,8 +126,7 @@ dre2_largest( int *values, int length )
 }
 
 // Determine if an array contains an item.
-int
-dre2_contains_int( int *values, int length, int key )
+int dre2_contains_int( int *values, int length, int key )
 {
   int i;
   for ( i = 0; i < length; i++ )
@@ -142,8 +138,7 @@ dre2_contains_int( int *values, int length, int key )
 }
 
 // Determine if a string contains a character.
-int
-dre2_contains_char( unsigned char *string, unsigned char c )
+int dre2_contains_char( unsigned char *string, unsigned char c )
 {
   unsigned char *pch;
   int length;
@@ -156,8 +151,7 @@ dre2_contains_char( unsigned char *string, unsigned char c )
 }
 
 // Predefined character classes, e.g. \a, \d, \s, etc.
-void
-dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action, int part_of_class )
+void dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action, int part_of_class )
 {
   int k;
   if ( !part_of_class )
@@ -376,8 +370,7 @@ dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action, int
 }
 
 // Evaluate a character class.
-int
-dre2_character_class( struct dre2_node *node, unsigned char *re, int s )
+int dre2_character_class( struct dre2_node *node, unsigned char *re, int s )
 {
   int length = strlen(re);
   int i = s;
@@ -457,8 +450,7 @@ dre2_character_class( struct dre2_node *node, unsigned char *re, int s )
 }
 
 // Convert a string into an integer.
-int
-string_to_int( unsigned char *s )
+int string_to_int( unsigned char *s )
 {
   // Number of digits in the string.
   int d = strlen( s );
@@ -497,8 +489,7 @@ string_to_int( unsigned char *s )
 
 
 // Exact size or size range, e.g. {0,4}, {2,}, {3}
-struct dre2_range_return
-dre2_range( unsigned char *re, int length, int pos )
+struct dre2_range_return dre2_range( unsigned char *re, int length, int pos )
 {
   unsigned char *min_buffer, *max_buffer;
   min_buffer = ( unsigned char * )calloc( 5, sizeof( unsigned char ) );
@@ -614,8 +605,7 @@ dre2_range( unsigned char *re, int length, int pos )
 }
 
 // Clean up memory, etc.
-void
-cleanup_nodes( struct dre2_node **v, int node_count )
+void cleanup_nodes( struct dre2_node **v, int node_count )
 {
   int i;
   if ( *v != NULL )
@@ -649,8 +639,7 @@ cleanup_nodes( struct dre2_node **v, int node_count )
 }
 
 // Clean up memory, etc.
-void
-cleanup_dre2( struct dre2 *graph )
+void cleanup_dre2( struct dre2 *graph )
 {
   cleanup_nodes( &graph->v, graph->count );
   free( graph->v ); graph->v = NULL;
@@ -663,8 +652,7 @@ cleanup_dre2( struct dre2 *graph )
   free( graph ); graph = NULL;
 }
 
-void
-dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct dre2_path **paths )
+void dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct dre2_path **paths )
 {
   int i, j;
   int size, last;
@@ -701,8 +689,7 @@ dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct d
 }
 
 // Frequency/cost of a single node.
-int
-dre2_node_cost( struct dre2 *graph, int id )
+int dre2_node_cost( struct dre2 *graph, int id )
 {
   int i, j;
   int cost;
@@ -794,8 +781,7 @@ dre2_node_cost( struct dre2 *graph, int id )
 }
 
 // Pick the best node that is required.
-int
-dre2_best_choice( struct dre2 *graph, int *required, int count )
+int dre2_best_choice( struct dre2 *graph, int *required, int count )
 {
   int i, j;
   int temp;
@@ -836,8 +822,7 @@ dre2_best_choice( struct dre2 *graph, int *required, int count )
 }
 
 // Set starting chars for multiple nodes.
-void
-dre2_set_chars( struct dre2 *graph, int id )
+void dre2_set_chars( struct dre2 *graph, int id )
 {
   int i, iter;
   struct dre2_node *node;
@@ -940,8 +925,7 @@ dre2_set_chars( struct dre2 *graph, int id )
 }
 
 // Set the starting chars.
-void
-dre2_starting_chars( struct dre2 *graph, int *minimal )
+void dre2_starting_chars( struct dre2 *graph, int *minimal )
 {
   int i, count;
   struct dre2_node *node;
@@ -999,8 +983,7 @@ dre2_starting_chars( struct dre2 *graph, int *minimal )
 }
 
 // Find the best starting node in the graph.
-int
-dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int minimal_count )
+int dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int minimal_count )
 {
   int i, j, k, l, m;
   int min_iter, iter;
@@ -1092,6 +1075,7 @@ dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int mini
 
   best = dre2_first_or_last( graph, &cost );
   INITIAL_CLEANUP:
+
   if ( path_count > 1 && dre2_use_paths( graph, best, &cost ) )
     best = -1;
 
@@ -1119,8 +1103,7 @@ dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int mini
 }
 
 // Find all of the reachable nodes from a node excluded backlinks.
-void
-dre2_min_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
+void dre2_min_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
 {
   if ( ( *visited )[id] == true )
     return;
@@ -1146,8 +1129,7 @@ dre2_min_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
 }
 
 // Find all of the reachable nodes from a node.
-void
-dre2_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
+void dre2_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
 {
   if ( ( *visited )[id] == true )
     return;
@@ -1172,8 +1154,7 @@ dre2_reachable( struct dre2 *graph, int **reachable, int **visited, int id )
 }
 
 // Strip out the group open and close nodes.
-void
-dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node **new_nodes, int *minimal, int **new_minimal, int *new_minimal_count, int **minimal_id )
+void dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node **new_nodes, int *minimal, int **new_minimal, int *new_minimal_count, int **minimal_id )
 {
   int i, j, k;
   struct dre2_node *nodes, *node;
@@ -1275,8 +1256,7 @@ dre2_strip_groups( struct dre2 *graph, struct dre2 *new_graph, struct dre2_node 
 }
 
 // Find out the cost of a single node.
-struct dre2_cost
-dre2_single_cost( struct dre2 *graph, int id )
+struct dre2_cost dre2_single_cost( struct dre2 *graph, int id )
 {
   int i, j;
   int c_count, frequency;
@@ -1316,8 +1296,7 @@ dre2_single_cost( struct dre2 *graph, int id )
 }
 
 // Find out the cost of the first node or last node.
-struct dre2_fl_cost
-dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
+struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
 {
   int i, j, k;
   int f_n_count, f_c_count, f_frequency;
@@ -1338,12 +1317,12 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
 
   for ( i = 0; i < graph->v[0].n_count; i++ )
   {
-    if ( !minimal[graph->v[0].n[i]] && !( graph->options & DRE2_GREEDY ) )
+    if ( !minimal[graph->v[0].n[i]] && !( graph->options & DRE2_GREEDY ) && graph->count > 3 )
       f_n_count--;
   }
   for ( i = 0; i < graph->v[graph->count - 1].p_count; i++ )
   {
-    if ( !minimal[graph->v[graph->count - 1].p[i]] && !( graph->options & DRE2_GREEDY ) )
+    if ( !minimal[graph->v[graph->count - 1].p[i]] && !( graph->options & DRE2_GREEDY ) && graph->count > 3 )
       l_n_count--;
   }
 
@@ -1370,7 +1349,7 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
     }
     for ( i = 0; i < next_count; i++ )
     {
-      if ( !minimal[next_ptr[i]] && !( graph->options & DRE2_GREEDY ) )
+      if ( !minimal[next_ptr[i]] && !( graph->options & DRE2_GREEDY ) && graph->count > 3 )
         continue;
       dre2_set_chars( graph, next_ptr[i] );
       for ( j = 1; j < RANGE; j++ )
@@ -1425,8 +1404,7 @@ dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
 }
 
 // See if it might be better to start somewhere in the middle of the graph.
-int
-dre2_use_paths( struct dre2 *graph, int best, struct dre2_fl_cost *cost )
+int dre2_use_paths( struct dre2 *graph, int best, struct dre2_fl_cost *cost )
 {
   int i, j;
   struct dre2_node *node;
@@ -1495,8 +1473,7 @@ dre2_use_paths( struct dre2 *graph, int best, struct dre2_fl_cost *cost )
 }
 
 // Use first or last node as starting point.
-int
-dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost *cost )
+int dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost *cost )
 {
   int i, j;
   double first, last, diff;
@@ -1518,23 +1495,20 @@ dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost *cost )
 }
 
 // Set the minimal bit to false.
-void
-dre2_remove_minimal( int **minimal, int id )
+void dre2_remove_minimal( int **minimal, int id )
 {
   ( *minimal )[id] = false;
 }
 
 // Add a minimal bit.
-void
-dre2_add_minimal( int **minimal, int *node_count )
+void dre2_add_minimal( int **minimal, int *node_count )
 {
   *minimal = ( int * )realloc( *minimal, sizeof( int ) * *node_count );
   ( *minimal )[*node_count - 1] = true;
 }
 
 // Add a node.
-void
-dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal, int no_realloc )
+void dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal, int no_realloc )
 {
   // Initialize the node count and vertex array if necessary.
   if ( ! *node_count )
@@ -1572,8 +1546,7 @@ dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal, int 
 }
 
 // Add a node to another node's neighbors.
-void
-dre2_add_neighbor( struct dre2_node **v, int origin, int dest )
+void dre2_add_neighbor( struct dre2_node **v, int origin, int dest )
 {
   // Add the neighbor.
   ( *v )[origin].n_count++;
@@ -1582,8 +1555,7 @@ dre2_add_neighbor( struct dre2_node **v, int origin, int dest )
 }
 
 // Add the parent nodes
-void
-dre2_add_parents( struct dre2 *graph )
+void dre2_add_parents( struct dre2 *graph )
 {
   int i, j;
   for ( i = 0; i < graph->count; i++ )
@@ -1600,8 +1572,7 @@ dre2_add_parents( struct dre2 *graph )
 }
 
 // Caculate the min length.
-void
-dre2_skip_table( struct dre2 *graph )
+void dre2_skip_table( struct dre2 *graph )
 {
   int i, j, r;
   int iter, l_iter;
@@ -1724,8 +1695,7 @@ dre2_skip_table( struct dre2 *graph )
 }
 
 // Duplicate a group.
-void
-dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node, struct dre2_parse_return *res, int **minimal )
+void dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node, struct dre2_parse_return *res, int **minimal )
 {
   int i, j, diff;
   int o, c;
@@ -1766,8 +1736,7 @@ dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node, str
 }
 
 // Duplicate a node.
-void
-dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, int **minimal )
+void dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, int **minimal )
 {
   dre2_add_node( v, node_count, ( *v )[last_node].c, minimal, false );
   dre2_add_minimal( minimal, node_count );
@@ -1776,8 +1745,7 @@ dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, int *
 }
 
 // Setup a character range, e.g. a{2,3}
-void
-dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct dre2_parse_return *res, int min, int max, int **minimal )
+void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct dre2_parse_return *res, int min, int max, int **minimal )
 {
   int i, j, last;
   int group = false;
@@ -1895,8 +1863,7 @@ dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct d
 }
 
 // Parsing algorithm.
-struct dre2_parse_return
-dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, int length, int pos, int **minimal, int *group_count )
+struct dre2_parse_return dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, int length, int pos, int **minimal, int *group_count )
 {
   int i, j, k;
   int last_node, current_group;
@@ -2202,8 +2169,7 @@ dre2_parse_recursive( struct dre2_node **v, int *node_count, unsigned char *re, 
 }
 
 // Parse function wrapper.
-struct dre2 *
-dre2_parse( unsigned char *re, int options )
+struct dre2 *dre2_parse( unsigned char *re, int options )
 {
   int i, j;
   struct dre2_node *v, *min_v;
@@ -2277,11 +2243,16 @@ dre2_parse( unsigned char *re, int options )
   dre2_skip_table( min_graph );
 
   // Find the best starting point and chars.
-  min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
-  if ( min_graph->starting_point == 1 )
+  if ( options & DRE2_GREEDY )
     min_graph->starting_point = 0;
-  if ( min_graph->starting_point == min_graph->count - 2 )
-    min_graph->starting_point = min_graph->count - 1;
+  else
+    min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
+
+//  if ( min_graph->starting_point == 1 )
+//    min_graph->starting_point = 0;
+//  if ( min_graph->starting_point == min_graph->count - 2 )
+//    min_graph->starting_point = min_graph->count - 1;
+
   dre2_starting_chars( min_graph, new_minimal );
 
   // Clean up the original graph's memory if we don't need it.
@@ -2304,10 +2275,8 @@ dre2_parse( unsigned char *re, int options )
   if ( min_graph->single )
   {
     for ( i = 0; i < RANGE; i++ )
-    {
       if ( min_graph->starting_chars[i] )
         min_graph->c = i;
-    }
   }
   if ( min_graph->starting_point == -1 )
   {
@@ -2349,7 +2318,6 @@ dre2_parse( unsigned char *re, int options )
 
   if ( options & DRE2_THREAD_SAFE )
   {
-    printf( "HERE!\n" );
     min_graph->r_temp = NULL;
     min_graph->reachable = NULL;
     min_graph->state = NULL;
@@ -2364,8 +2332,7 @@ dre2_parse( unsigned char *re, int options )
 }
 
 // Display the regex dre2.
-void
-print_dre2( struct dre2 *graph )
+void print_dre2( struct dre2 *graph )
 {
   printf( "=======================\n" );
   printf( "|| Node || Neighbors ||\n" );
@@ -2399,8 +2366,7 @@ print_dre2( struct dre2 *graph )
 }
 
 // Display the reverse dre2.
-void
-print_reverse_dre2( struct dre2 *graph )
+void print_reverse_dre2( struct dre2 *graph )
 {
   printf( "=======================\n" );
   printf( "|| Node || Parents   ||\n" );
