@@ -310,11 +310,11 @@ void dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action
     // Match a space or tab (or newline, carriage return, or form feed.
     if ( part_of_class )
     {
-      node->possible['\t'] = true;
-      node->possible['\n'] = true;
-      node->possible['\r'] = true;
-      node->possible['\f'] = true;
-      node->possible[' '] = true;
+      node->possible['\t'] = action;
+      node->possible['\n'] = action;
+      node->possible['\r'] = action;
+      node->possible['\f'] = action;
+      node->possible[' '] = action;
     } else
     {
       node->c = DRE2_WHITE_SPACE;
