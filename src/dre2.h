@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/time.h>
 
 #define RANGE 256
 #define DRE2_INFINITE -1
