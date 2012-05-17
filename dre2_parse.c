@@ -392,6 +392,7 @@ int dre2_character_class( struct dre2_node *node, unsigned char *re, int s )
 
   for ( k = 0; k < RANGE; k++ )
     node->possible[k] = action == true ? false : true;
+  node->possible[0] = false;
 
   unsigned char c;
   unsigned char last = '\0';
@@ -787,13 +788,17 @@ int dre2_best_choice( struct dre2 *graph, int *required, int count )
   int temp;
   int *ids, *cost;
   int best;
+  int literal;
 
   ids = ( int * )malloc( sizeof( int ) * count );
   cost = ( int * )malloc( sizeof( int ) * count );
+  literal = false;
   for ( i = 0; i < count; i++ )
   {
     ids[i] = required[i];
     cost[i] = required[i] == 0 || required[i] == graph->count - 1 ? 100000 : dre2_node_cost( graph, required[i] );
+    if ( graph->v[required[i]].c >= 0 )
+      literal = true;
   }
 
   for ( i = 0; i < count - 1; i++ )
@@ -811,7 +816,11 @@ int dre2_best_choice( struct dre2 *graph, int *required, int count )
       }
     }
   }
+
   best = ids[0];
+
+  if ( graph->options & DRE2_GREEDY && !literal && dre2_contains_int( required, count, graph->count - 2 ) )
+    best = graph->count - 2;
 
   free( cost );
   free( ids );
@@ -1383,6 +1392,7 @@ struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
   cost.l_frequency = l_frequency;
 
   ok = true;
+  /*
   if ( graph->options & DRE2_GREEDY )
   {
     for ( i = 0; i < graph->v[graph->count - 1].p_count; i++ )
@@ -1400,6 +1410,7 @@ struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
       cost.l_frequency = RANGE * 100;
     }
   }
+  */
   return cost;
 }
 
@@ -1537,7 +1548,7 @@ void dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal,
 
   // Allocate some memory for character class possible lookup list.
   if ( c == DRE2_CHAR_CLASS )
-    ( *v )[*node_count - 1].possible = ( int * )malloc( sizeof( int ) * RANGE );
+    ( *v )[*node_count - 1].possible = ( int * )calloc( RANGE, sizeof( int ) );
 
   // Initialize min_n to NULL.
   ( *v )[*node_count - 1].min_n = NULL;
@@ -1703,6 +1714,7 @@ void dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node
   for ( i = res->open; i <= res->close; i++ )
   {
     dre2_duplicate_node( v, node_count, i, minimal );
+    ( *minimal )[*node_count - 1] = ( *minimal )[i];
     if ( i != res->open )
     {
       ( *v )[*node_count - 1].p_count = ( *v )[i].p_count;
@@ -1739,7 +1751,6 @@ void dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node
 void dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, int **minimal )
 {
   dre2_add_node( v, node_count, ( *v )[last_node].c, minimal, false );
-  dre2_add_minimal( minimal, node_count );
   if ( ( *v )[last_node].c == DRE2_CHAR_CLASS )
     memcpy( ( *v )[*node_count - 1].possible, ( *v )[last_node].possible, RANGE * sizeof( int ) );
 }
@@ -1797,7 +1808,6 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
     if ( group )
     {
       dre2_duplicate_group( v, node_count, last_node, res, minimal );
-      
     } else
     {
       dre2_duplicate_node( v, node_count, *last_node, minimal );
@@ -1819,7 +1829,14 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
   }
 
   if ( min == 0 && group )
+  {
+    for ( i = res->open; i <= res->close; i++ )
+      dre2_remove_minimal( minimal, i );
     dre2_add_neighbor( v, res->open, res->close );
+  } else if ( min == 0 )
+  {
+    dre2_remove_minimal( minimal, *last_node );
+  }
 
   if ( max == DRE2_INFINITE )
   {
@@ -1847,8 +1864,8 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
         if ( i > 0 )
         {
           dre2_duplicate_node( v, node_count, *last_node, minimal );
-          dre2_remove_minimal( minimal, *node_count - 1 );
           *last_node = *node_count - 1;
+          dre2_remove_minimal( minimal, *node_count - 1 );
         }
       }
       for ( j = 0; j < parent_count; j++ )
@@ -2244,34 +2261,7 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   dre2_skip_table( min_graph );
 
   // Find the best starting point and chars.
-  all_minimal = true;
-  if ( options & DRE2_GREEDY )
-  {
-    for ( i = 0; i < min_graph->count; i++ )
-    {
-      if ( !new_minimal[i] )
-      {
-        all_minimal = false;
-        break;
-      } else if ( dre2_contains_int( min_graph->v[i].n, min_graph->v[i].n_count, i ) )
-      {
-        all_minimal = false;
-        break;
-      }
-    }
-    if ( !all_minimal )
-      min_graph->starting_point = 0;
-  }
-  if ( all_minimal || !( options & DRE2_GREEDY ) )
-  {
-    min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
-  }
-
-//  if ( min_graph->starting_point == 1 )
-//    min_graph->starting_point = 0;
-//  if ( min_graph->starting_point == min_graph->count - 2 )
-//    min_graph->starting_point = min_graph->count - 1;
-
+  min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
   dre2_starting_chars( min_graph, new_minimal );
 
   // Clean up the original graph's memory if we don't need it.
