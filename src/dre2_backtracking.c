@@ -116,6 +116,8 @@ void dre2_backtrack_match( struct dre2 *graph, unsigned char *input, unsigned ch
     {
       if ( group_close[i - 1] > group_open[i - 1] )
         sprintf( ( *submatches )[i - 1], "%.*s", group_close[i - 1] - group_open[i - 1], input + group_open[i - 1] );
+      else
+        ( *submatches )[i - 1][0] = '\0';
     }
   } else
   {
