@@ -44,11 +44,8 @@ int main( int argc, char *argv[] )
       if ( re->original->group_count > 1 )
       {
         dre2_backtrack_match( re, match, &submatches );
-        printf( "Submatch: '%s'\n", submatches[0] );
         for ( i = 1; i < re->original->group_count; i++ )
-        {
           printf( "Submatch %d: '%s'\n", i - 1, submatches[i - 1] );
-        }
       }
     }
   }
