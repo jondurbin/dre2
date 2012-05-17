@@ -64,26 +64,33 @@ DRE2_OPTION
   #define false 0
 #endif
 
-struct
-dre2_match_value {
+struct dre2_single_match {
+  int active_states;             // Number of active states when the match succeeded.
+  unsigned char *match;          // Pointer to position where match succeeded.
+};
+
+struct dre2_match_value
+{
   int matched;                   // True/False flag indicating if the string matched.
+  int can_continue;              // True/False flag indicating if there were multiple states still active upon matching.
   int start_pos;                 // Index of first character of substring that matched.
   int end_pos;                   // Index of last character of substring that matched.
 };
 
-struct
-dre2_path {
+struct dre2_path
+{
   int *nodes;                    // Nodes in this path.
   int count;                     // Number of nodes within the path.
 };
 
-struct dre2_cost {
+struct dre2_cost
+{
   int c_count;                   // Number of possible characters.
   int frequency;                 // Sum of the frequency of each possible character.
 };
 
-struct
-dre2_fl_cost {
+struct dre2_fl_cost
+{
   int f_n_count;                 // Number of reachable nodes from the first node.
   int f_c_count;                 // Number of characters possible in the first reachable nodes.
   int f_frequency;               // Total frequency rating for first possible characters.
@@ -92,8 +99,8 @@ dre2_fl_cost {
   int l_frequency;               // Total frequency rating for the last possible characters.
 };
 
-struct
-dre2_node {
+struct dre2_node
+{
   int c;                         // This node's data.
   int *n;                        // Neighbors of this node.
   int n_count;                   // Number of neighbors of this node.
@@ -106,23 +113,23 @@ dre2_node {
   int group_id;                  // Group identifier for submatch extraction.
 };
 
-struct
-dre2_range_return {
+struct dre2_range_return
+{
   int min;                       // Min size.
   int max;                       // Max size.
   int valid;                     // Whether or not the range is valid.
   int pos;                       // Position in the regex string where range terminates.
 };
 
-struct
-dre2_parse_return {
+struct dre2_parse_return
+{
   int open;                      // Opening node of the group.
   int close;                     // Closing node of the group.
   int pos;                       // Position in the regex.
 };
 
-struct
-dre2 {
+struct dre2
+{
   struct dre2_node *v;           // Vertices within the graph.
   int count;                     // Number of nodes in the graph.
   int skip_table[RANGE];         // Horspool style skip table.
@@ -180,7 +187,7 @@ struct dre2 *dre2_parse( unsigned char *re, int options );
 void print_dre2( struct dre2 *graph );
 void print_reverse_dre2( struct dre2 *graph );
 int dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c );
-unsigned char *dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable, int *state );
+struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable, int *state );
 void dre2_matched_substring( unsigned char *input, struct dre2_match_value *value, unsigned char ** );
 struct dre2_match_value dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
 struct dre2_match_value dre2_sn_sc( struct dre2 *graph, unsigned char *input, int length, int *r_temp, int *reachable, int *state );
