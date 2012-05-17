@@ -1,0 +1,10 @@
+Tom.{0,30}river|river.{0,30}Tom
+"[^"]{0,30}[?!.]"
+([A-Za-z]awyer|[A-Za-z]inn)[^a-zA-Z]
+([a-f](.[d-m].){0,2}[h-n]){2}
+[a-zA-Z]{0,4}ing[^a-zA-Z]
+[a-zA-Z]+ing
+.{0,3}(Tom|Sawyer|Huckleberry|Finn)
+Tom|Sawyer|Huckleberry|Finn
+Huck[a-zA-Z]+|Finn[a-zA-Z]+
+Twain
