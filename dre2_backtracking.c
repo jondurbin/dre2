@@ -7,6 +7,7 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
   int offset;
   int g_open, g_close;
   unsigned char *tp;
+  int *last_state;
 
   tp = input + pos;
 
@@ -21,15 +22,28 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
   // Make sure we haven't already tried this node.
   if ( ( *state )[id] )
     return false;
+
+  last_state = ( int * )malloc( sizeof( int ) * graph->count );
+  for ( i = 0; i < graph->count; i++ )
+    last_state[i] = ( *state )[i];
+
   ( *state )[id] = true;
 
   // Match the input character if it's not a group.
   if ( graph->v[id].c != DRE2_GROUP_OPEN && graph->v[id].c != DRE2_GROUP_CLOSE )
   {
     if ( ( graph->v[id].c == DRE2_EOF && ( ( *tp == ' ' && pos >= strlen( input ) - 1 ) || *tp == '\0' ) ) || dre2_char_matches( graph, &graph->v[id], *tp ) )
+    {
       offset = 1;
-    else
+      for ( i = 0; i < graph->count; i++ )
+        ( *state )[i] = last_state[i];
+      pos++;
+    } else
+    {
+      free( last_state );
+      last_state = NULL;
       return false;
+    }
   } else
   {
     offset = 0;
@@ -46,25 +60,21 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
     ( *group_close )[graph->v[id].group_id - 1] = pos;
   }
 
-  // If offset is not 0, then we matched an input character, so advance input pos and reset state table.
-  if ( offset )
-  {
-    pos++;
-    for ( i = 0; i < graph->count; i++ )
-      ( *state )[i] = false;
-  }
-
   // Check each of this nodes neighbors.
   for ( i = 0; i < graph->v[id].n_count; i++ )
   {
     // If the recursive function returns true, the regex matched.
     if ( dre2_backtrack_recursive( graph, input, pos, graph->v[id].n[i], state, group_open, group_close ) )
+    {
+      free( last_state );
+      last_state = NULL;
       return true;
+    }
   }
 
   // Revert state table on failure as well.
   for ( i = 0; i < graph->count; i++ )
-    ( *state )[i] = false;
+    ( *state )[i] = last_state[i]; //false;
 
   // Revert group open/close on failure.
   if ( graph->v[id].c == DRE2_GROUP_OPEN && graph->v[id].group_id > 0 )
@@ -74,6 +84,8 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
   {
     ( *group_close )[graph->v[id].group_id - 1] = g_close;
   }
+  free( last_state );
+  last_state = NULL;
   return false;
 }
 
