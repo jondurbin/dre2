@@ -15,6 +15,11 @@ then
 	tar -xvzf mtent12.tar.gz
 fi
 
+# Make sure the xees exist.
+if [ ! -e "xees/dre2" ]; then
+	make
+fi
+
 # Iterate through regular expressions.
 for re in `cat regexes.txt`
 do
