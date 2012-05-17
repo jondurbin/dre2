@@ -36,6 +36,32 @@
     }
 ```
 
+### Extracting the submatches.
+```c
+  // Initialize submatch string array.
+  submatches = ( unsigned char ** )calloc( re->original->group_count, sizeof( unsigned char * ) );
+  for ( i = 1; i < re->original->group_count; i++ )
+    submatches[i - 1] = ( unsigned char * )calloc( 0x10000, sizeof( unsigned char ) );
+
+  // Check if input string matches the regex.
+  result = dre2_match( re, input );
+  if ( result.matched )
+  {
+    // First, get the matched substring.
+    dre2_matched_substring( input, &result, &match );
+    printf( "Match: %s\n", match );
+
+    // We only have submatch info if there is more than 1 group.
+    if ( re->original->group_count > 1 )
+    {
+      // Run the backtracking match to set submatched strings.
+      dre2_backtrack_match( re, match, &submatches );
+      for ( i = 1; i < re->original->group_count; i++ )
+        printf( "Submatch %d: '%s'\n", i - 1, submatches[i - 1] );
+    }
+  }
+```
+
 ### Cleanup:
 ```c
   cleanup_dre2( re );
@@ -45,8 +71,7 @@
 ```c
 #include "dre2.h"
 
-int
-main( int argc, char *argv[] )
+int main( int argc, char *argv[] )
 {
   struct dre2 *re;                  // Pointer to regex digraph object.
   unsigned char *buf;               // Buffer to hold input strings.
@@ -60,7 +85,7 @@ main( int argc, char *argv[] )
   }
 
   // Parse the regex string into the dre2 object.
-  re = dre2_parse( ( unsigned char * )argv[1], DRE2_GREEDY );
+  re = dre2_parse( ( unsigned char * )argv[1], 0 );
 
   // Make sure parsing was successful.
   if ( re == NULL )
@@ -112,6 +137,11 @@ main( int argc, char *argv[] )
 ### Greedy mode:
 ```c
   re = dre2_parse( regex_string, DRE2_GREEDY );
+```
+
+### Submatch mode - Needed if you plan on using the submatches for anything.
+```c
+  re = dre2_parse( regex_string, DRE2_SUBMATCH );
 ```
 
 ### Combinations:
