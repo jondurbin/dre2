@@ -2137,14 +2137,9 @@ void dre2_anchorize( struct dre2 *graph, int *minimal, int *minimal_id, int mini
       if ( !dre2_contains_int( found_at, count, i ) )
       {
         if ( graph->match_method == DRE2_BOL_ANCHORED )
-        {
           unanchored[u_count++] = next_nodes[i];
-          printf( "Unanchored node: %d\n", unanchored[u_count - 1] );
-        } else
-        {
+        else
           unanchored[u_count++] = next_nodes[i];
-          printf( "Unanchored node: %d\n", unanchored[u_count - 1] );
-        }
       // Otherwise, add the anchor node's neighbors to the anchored list.
       } else
       {
@@ -2153,20 +2148,14 @@ void dre2_anchorize( struct dre2 *graph, int *minimal, int *minimal_id, int mini
           for ( j = 0; j < graph->v[next_nodes[i]].n_count; j++ )
           {
             if ( !dre2_contains_int( anchored, a_count, graph->v[next_nodes[i]].n[j] ) )
-            {
               anchored[a_count++] = graph->v[next_nodes[i]].n[j];
-              printf( "Anchored node: %d\n", anchored[a_count - 1] );
-            }
           }
         } else
         {
           for ( j = 0; j < graph->v[next_nodes[i]].p_count; j++ )
           {
             if ( !dre2_contains_int( anchored, a_count, graph->v[next_nodes[i]].p[j] ) )
-            {
               anchored[a_count++] = graph->v[next_nodes[i]].p[j];
-              printf( "Anchored node: %d\n", anchored[a_count - 1] );
-            }
           }
         }
       }
@@ -2174,10 +2163,7 @@ void dre2_anchorize( struct dre2 *graph, int *minimal, int *minimal_id, int mini
 
     // If all of the first reachable nodes are anchored, we won't have to do multiple searches.
     if ( np_count == count )
-    {
       graph->all_anchored = true;
-      printf( "All first nodes are anchored!\n" );
-    }
 
     // Set the unanchored and anchored counts.
     if ( graph->match_method == DRE2_BOL_ANCHORED )
@@ -2420,8 +2406,6 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
     }
   }
 
-printf( "Primary: %d, Secondary: %d\n", min_graph->match_method, min_graph->secondary_method );
-
   if ( options & DRE2_THREAD_SAFE )
   {
     min_graph->r_temp = NULL;
@@ -2456,9 +2440,13 @@ void print_dre2( struct dre2 *graph )
   printf( "=======================\n" );
   for ( i = 0; i < graph->count; i++ )
   {
+    printf( "Node %d: ", i );
+    for ( j = 0; j < graph->v[i].n_count; j++ )
+      printf( "%d, ", graph->v[i].n[j] );
+    printf( "\n" );
+
     if ( graph->v[i].c == DRE2_CHAR_CLASS )
     {
-      printf( "Node %d C: ", i );
       for ( j = 0; j < RANGE; j++ )
       {
         if ( graph->v[i].possible[j] )
@@ -2469,7 +2457,6 @@ void print_dre2( struct dre2 *graph )
       printf( "\n" );
     } else if ( graph->v[i].c < 0 )
     {
-      printf( "Node %d C: ", i );
       if ( graph->v[i].c == DRE2_DOT )
       {
         for ( j = 0; j < RANGE; j++ )
@@ -2501,16 +2488,7 @@ void print_dre2( struct dre2 *graph )
         }
       }
       printf ( "\n" );
-    } else
-    {
-      if ( graph->v[i].c == DRE2_GROUP_OPEN || graph->v[i].c == DRE2_GROUP_CLOSE )
-        printf( "Node %d (G%d): ", graph->v[i].group_id );
-      else
-        printf( "Node %d (%c): ", i, graph->v[i].c );
     }
-    for ( j = 0; j < graph->v[i].n_count; j++ )
-      printf( "%d, ", graph->v[i].n[j] );
-    printf( "\n" );
   }
   printf( "\n" );
 }
