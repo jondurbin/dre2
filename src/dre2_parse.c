@@ -1533,15 +1533,15 @@ void dre2_skip_table( struct dre2 *graph )
             if ( node->possible[j] && graph->skip_table[j] > total - 1 || graph->skip_table[j] == 0 )
               graph->skip_table[j] = total - 1;
           }
-        } else if ( node->c == DRE2_BOL || node->c == DRE2_EOF || node->c == DRE2_EOL )
-        {
-          total--;
         } else if ( node->c >= 0 )
         {
           if ( graph->skip_table[node->c] > total - 1 || graph->skip_table[node->c] == 0 )
             graph->skip_table[node->c] = total - 1;
         }
       }
+      if ( node->c == DRE2_BOL || node->c == DRE2_EOF || node->c == DRE2_EOL )
+          total--;
+
 
       // Add the current node's parents to the next reachable nodes.
       for ( j = 0; j < node->p_count; j++ )
@@ -1646,7 +1646,6 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
   int i, j, last;
   int group = false;
   int max_position;
-  int *parents, parent_count;
 
   if ( ( *v )[*last_node].c == DRE2_GROUP_CLOSE )
   {
@@ -1661,22 +1660,8 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
     max_position = *last_node + max;
   }
 
-  parents = ( int * )malloc( sizeof( int ) * *last_node );
-  parent_count = 0;
   if ( min == 0 )
   {
-    for ( i = 0; i < *last_node; i++ )
-    {
-      struct dre2_node *node = &( *v )[i];
-      for ( j = 0; j < node->n_count; j++ )
-      {
-        if ( ( group && node->n[j] == res->open ) || ( node->n[j] == *last_node ) )
-        {
-          parent_count++;
-          parents[parent_count - 1] = i;
-        }
-      }
-    }
     if ( ( *v )[*last_node].c == DRE2_GROUP_CLOSE )
     {
       for ( i = res->open; i <= res->close; i++ )
@@ -1700,18 +1685,8 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
     }
   }
 
-  if ( min > 0 )
-  {
-    parent_count = 1;
-    parents[0] = *last_node;
-  }
-
   if ( max == min )
-  {
-    free( parents );
-    parents = NULL;
     return;
-  }
 
   if ( min == 0 && group )
   {
@@ -1734,34 +1709,29 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
     int last = *last_node;
     for ( i = min; i < max; i++ )
     {
-      int last2 = *last_node;
-      dre2_add_neighbor( v, *last_node, *node_count );
-      if ( group )
+      if ( !group && i > 0 )
       {
-        if ( i > 0 )
-        {
-          dre2_duplicate_group( v, node_count, last_node, res, minimal );
-          for ( j = res->open; j <= res->close; j++ )
-            dre2_remove_minimal( minimal, j );
-        }
-      } else
+        last = *last_node;
+        dre2_add_node( v, node_count, DRE2_GROUP_OPEN, minimal, false );
+        dre2_duplicate_node( v, node_count, last, minimal );
+        dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
+        dre2_add_neighbor( v, last, last + 1 );
+        dre2_add_neighbor( v, last, *node_count - 1 );
+        dre2_add_neighbor( v, last + 1, *node_count - 1 );
+        *last_node = *node_count - 1;
+        for ( j = last; j < *node_count; j++ )
+          dre2_remove_minimal( minimal, j );
+      } else if ( i > 0 )
       {
-        if ( i > 0 )
-        {
-          dre2_duplicate_node( v, node_count, *last_node, minimal );
-          *last_node = *node_count - 1;
-          dre2_remove_minimal( minimal, *node_count - 1 );
-        }
+        last = *last_node;
+        dre2_add_neighbor( v, *last_node, *node_count );
+        dre2_duplicate_group( v, node_count, last_node, res, minimal );
+        dre2_add_neighbor( v, res->open, res->close );
+        for ( j = res->open; j <= res->close; j++ )
+          dre2_remove_minimal( minimal, j );
       }
-      for ( j = 0; j < parent_count; j++ )
-        dre2_add_neighbor( v, parents[j], *last_node );
     }
-    for ( j = 0; j < parent_count; j++ )
-      dre2_add_neighbor( v, parents[j], max_position );
   }
-
-  free( parents );
-  parents = NULL;
 }
 
 // Parsing algorithm.
@@ -2231,6 +2201,7 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   int *minimal, *new_minimal, minimal_count, *minimal_id;
   struct dre2_parse_return ret;
   struct dre2 *min_graph, *graph;
+  int bol, eol, eof;
 
   // Setup the return graph and temp, initial graph.
   graph = ( struct dre2 * )malloc( sizeof( struct dre2 ) );
@@ -2310,26 +2281,36 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   min_graph->match_method = -1;
 
   // First, check if there is a '^', '$', or '\z' in the regex.
-  for ( i = 0; i < min_graph->count; i++ )
+  bol = eol = eof = false;
+  for ( i = 0; i < min_graph->v[0].n_count; i++ )
   {
-    switch ( min_graph->v[i].c )
+    if ( min_graph->v[min_graph->v[0].n[i]].c == DRE2_BOL )
     {
-      case DRE2_EOF:
-        min_graph->match_method = DRE2_EOF_ANCHORED;
-        break;
-      case DRE2_EOL:
-        min_graph->match_method = DRE2_EOL_ANCHORED;
-        break;
-      case DRE2_BOL:
-        min_graph->match_method = DRE2_BOL_ANCHORED;
-        break;
-    }
-    if ( min_graph->match_method >= 0 )
-    {
-      dre2_anchorize( min_graph, new_minimal, minimal_id, minimal_count );
+      bol = true;
       break;
     }
   }
+  for ( i = 0; i < min_graph->v[min_graph->count - 1].p_count; i++ )
+  {
+    if ( min_graph->v[min_graph->v[min_graph->count - 1].p[i]].c == DRE2_EOL )
+    {
+      eol = true;
+      break;
+    } else if ( min_graph->v[min_graph->v[min_graph->count - 1].p[i]].c == DRE2_EOF )
+    {
+      eof = true;
+      break;
+    }
+  }
+  if ( eof )
+    min_graph->match_method = DRE2_EOF_ANCHORED;
+  else if ( eol )
+    min_graph->match_method = DRE2_EOL_ANCHORED;
+  else if ( bol )
+    min_graph->match_method = DRE2_BOL_ANCHORED;
+
+  if ( min_graph->match_method >= 0 )
+    dre2_anchorize( min_graph, new_minimal, minimal_id, minimal_count );
 
   if ( min_graph->match_method == - 1 )
   {
@@ -2440,7 +2421,7 @@ void print_dre2( struct dre2 *graph )
   printf( "=======================\n" );
   for ( i = 0; i < graph->count; i++ )
   {
-    printf( "Node %d: ", i );
+    printf( "Node %d (%c): ", i, graph->v[i].c );
     for ( j = 0; j < graph->v[i].n_count; j++ )
       printf( "%d, ", graph->v[i].n[j] );
     printf( "\n" );
