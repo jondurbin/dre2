@@ -32,6 +32,8 @@ DRE2_NODE_TYPE
   DRE2_WHITE_SPACE = -14,
   DRE2_8BIT = -15,
   DRE2_DOT = -16,
+  DRE2_EOL = -17,
+  DRE2_BOL = -18,
 };
 
 // Matching methods.
@@ -43,6 +45,9 @@ DRE2_MATCH_METHOD
   DRE2_SN_SC_H,                  // Match using a single starting node, single possible first character, using horspool-ish skip-table.
   DRE2_SN_MC_H,                  // Match using a single starting node, multiple first possible characters, using horspool-ish skip-table.
   DRE2_MN,                       // Match from multiple starting nodes.
+  DRE2_BOL_ANCHORED,             // Match when there's a '^'.
+  DRE2_EOL_ANCHORED,             // Match when there's a '$'.
+  DRE2_EOF_ANCHORED,             // Match when there's a '\z'.
 };
 
 // Matching/parsing options.
@@ -110,6 +115,10 @@ struct dre2_node
   int *min_n;                    // Neighbors of this node in the minimal graph.
   int min_n_count;               // Number of neighbors in the minimal graph.
   int group_id;                  // Group identifier for submatch extraction.
+  int *unanchored;               // Nodes that are unanchored, e.g. (^a| ), ' ' doesn't have to match at the start of string.
+  int u_count;                   // Number of unanchored neighbors.
+  int *anchored;                 // Nodes that are anchored, e.g. (^a| ), 'a' has to match at the start of the string.
+  int a_count;                   // Number of anchored neighbors.
 };
 
 struct dre2_range_return
@@ -137,6 +146,7 @@ struct dre2
   int *starting_chars;           // Characters possible at our starting point.
   int single;                    // Whether or not the starting point is a single char.
   int match_method;              // Method that will be used to match this regex.
+  int secondary_method;          // When there are anchored and unanchored searches, this is for the unanchored search.
   unsigned char c;               // Single char to search for if there's a single starting char.
   int *starting_points;          // If all else fails, match from multiple nodes using best node in each path.
   int starting_count;            // Number of nodes for above.
@@ -146,6 +156,7 @@ struct dre2
   int *state;                    // Next-reachable node state lookup.
   struct dre2 *original;         // Original graph - used only for backtracking.
   int group_count;               // Number of groups in the regex.
+  int all_anchored;              // Whether or not all of the first reachable nodes are anchored or not.
 };
 
 unsigned char *dre2_escaped( unsigned char *re );
