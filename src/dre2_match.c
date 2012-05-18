@@ -23,7 +23,9 @@ int dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char
   switch( node->c )
   {
     case DRE2_DOT:
-      return true;
+      if ( c != '\0' && c != '\n' && c != '\r' )
+        return true;
+      return false;
     case DRE2_ALPHA:
       if ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) )
         return true;
@@ -116,17 +118,15 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
       node = &graph->v[r];
 
       // Check if the character matches the node.
-      if ( ( node->c == DRE2_BOL && input - begin_ptr == 0 ) ||
+      if ( ( node->c == DRE2_BOL && input - begin_ptr == -1 ) ||
            ( node->c == DRE2_EOL && ( ( *input == '\n' && input - begin_ptr + 1 == length - 1 ) ) || *input == '\0' ) ||
            ( node->c == DRE2_EOF && ( ( *input == ' ' && input - begin_ptr + 1 == length - 1 ) || *input == '\0' ) ) ||
            ( dre2_char_matches( graph, node, *input ) ) )
       {
-
         if ( node->c == DRE2_BOL )
           matched_bol = true;
         else if ( node->c == DRE2_EOF || node->c == DRE2_EOL )
           matched_eolf = true;
-
         matched = true;
 
         // Set the next state to include this node's neighbors/parents.
@@ -202,6 +202,7 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
     if ( matched == false )
       goto SINGLE_MATCH_FINISH;
   }
+
   SINGLE_MATCH_FINISH:
   if ( graph->options & DRE2_GREEDY )
   {
@@ -548,11 +549,11 @@ struct dre2_match_value dre2_eolf_match( struct dre2 *graph, unsigned char *inpu
   pch = input + length - 1;
 
   // Remove the new lines and carriage returns at the end.
-  while ( *pch == '\n' || *pch == '\r' || *pch == '\0' )
+  while ( pch - input >= 0 && ( *pch == '\n' || *pch == '\r' || *pch == '\0' ) )
     *pch--;
 
   // If it's a \z, we allow one extra space at the end.
-  if ( graph->match_method == DRE2_EOF_ANCHORED && *pch == ' ' )
+  if ( pch - input >= 0 && graph->match_method == DRE2_EOF_ANCHORED && *pch == ' ' )
     *pch--;
 
   result = dre2_matcher( graph, input, pch, graph->count - 1, DRE2_LEFT, length, r_temp, reachable, state );
