@@ -79,7 +79,7 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
   int matched;
   int r;
   int count;
-  int found, complete, matched_bol;
+  int found, complete, matched_bol, matched_eolf;
   struct dre2_node *node;
   struct dre2_single_match ret;
 
@@ -100,6 +100,7 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
     reachable[0] = start;
     l_iter = 1;
   }
+
   while ( input - begin_ptr <= length && input - begin_ptr >= 0 )
   {
     // Check for valid states.
@@ -108,6 +109,7 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
     matched = false;
     complete = false;
     matched_bol = false;
+    matched_eolf = false;
     for ( i = 0; i < l_iter; i++ )
     {
       r = reachable[i];
@@ -115,13 +117,15 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
 
       // Check if the character matches the node.
       if ( ( node->c == DRE2_BOL && input - begin_ptr == 0 ) ||
-           ( node->c == DRE2_EOL && ( ( *input == ' ' && input - begin_ptr + 1 == length - 1 ) ) ) ||
+           ( node->c == DRE2_EOL && ( ( *input == '\n' && input - begin_ptr + 1 == length - 1 ) ) || *input == '\0' ) ||
            ( node->c == DRE2_EOF && ( ( *input == ' ' && input - begin_ptr + 1 == length - 1 ) || *input == '\0' ) ) ||
            ( dre2_char_matches( graph, node, *input ) ) )
       {
 
         if ( node->c == DRE2_BOL )
           matched_bol = true;
+        else if ( node->c == DRE2_EOF || node->c == DRE2_EOL )
+          matched_eolf = true;
 
         matched = true;
 
@@ -163,7 +167,7 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
     r_temp = swapper;
 
     // Increment/Decrement input.
-    if ( !matched_bol )
+    if ( !matched_bol && !matched_eolf )
     {
       if ( direction == DRE2_LEFT )
         *input--;
@@ -463,13 +467,16 @@ struct dre2_match_value dre2_bol_match( struct dre2 *graph, unsigned char *input
   int *n_ptr;
   struct dre2_single_match result;
   struct dre2_match_value ret_val;
+  int temp;
 
   ret_val.start_pos = 0;
   ret_val.matched = false;
 
   // Make the first node's neighbor list the anchored neighbors.
   n_ptr = graph->v[0].n;
+  temp = graph->v[0].n_count;
   graph->v[0].n = graph->v[0].anchored;
+  graph->v[0].n_count = graph->v[0].a_count;
 
   if ( graph->v[0].n == NULL )
     printf( "Neighbors are null!\n" );
@@ -482,8 +489,8 @@ struct dre2_match_value dre2_bol_match( struct dre2 *graph, unsigned char *input
     ret_val.matched = true;
     ret_val.end_pos = result.match - input + 1;
     ret_val.can_continue = false;
-    // Revert to original neighbor list.
     graph->v[0].n = n_ptr;
+    graph->v[0].n_count = temp;
     return ret_val;
   }
 
@@ -491,6 +498,7 @@ struct dre2_match_value dre2_bol_match( struct dre2 *graph, unsigned char *input
   if ( !graph->all_anchored )
   {
     graph->v[0].n = graph->v[0].unanchored;
+    graph->v[0].n_count = graph->v[0].u_count;
 
     switch ( graph->secondary_method )
     {
@@ -510,9 +518,9 @@ struct dre2_match_value dre2_bol_match( struct dre2 *graph, unsigned char *input
         ret_val = dre2_mn( graph, input, length, r_temp, reachable, state );
         break;
     }
-    // Revert to the original neighbor list.
-    graph->v[0].n = n_ptr;
   }
+  graph->v[0].n = n_ptr;
+  graph->v[0].n_count = temp;
   return ret_val;
 }
 
@@ -523,25 +531,30 @@ struct dre2_match_value dre2_eolf_match( struct dre2 *graph, unsigned char *inpu
   int *p_ptr;
   struct dre2_single_match result;
   struct dre2_match_value ret_val;
+  int temp;
 
   ret_val.matched = false;
 
   // Make the first node's neighbor list the anchored neighbors.
+  temp = graph->v[graph->count - 1].p_count;
   p_ptr = graph->v[graph->count - 1].p;
   graph->v[graph->count - 1].p = graph->v[graph->count - 1].anchored;
+  graph->v[graph->count - 1].p_count = graph->v[graph->count - 1].a_count;
 
   if ( graph->v[graph->count - 1].p == NULL )
     printf( "Parents are null!\n" );
 
   // Try the anchored match.
   pch = input + length - 1;
-  while ( *pch == '\0' || *pch == '\n' || *pch == '\r' )
+
+  // Remove the new lines and carriage returns at the end.
+  while ( *pch == '\n' || *pch == '\r' || *pch == '\0' )
     *pch--;
 
-  // Allow one extra space at the end.
+  // If it's a \z, we allow one extra space at the end.
   if ( graph->match_method == DRE2_EOF_ANCHORED && *pch == ' ' )
-   *pch--;
-   
+    *pch--;
+
   result = dre2_matcher( graph, input, pch, graph->count - 1, DRE2_LEFT, length, r_temp, reachable, state );
   if ( result.match != NULL )
   {
@@ -549,8 +562,8 @@ struct dre2_match_value dre2_eolf_match( struct dre2 *graph, unsigned char *inpu
     ret_val.start_pos = result.match - input;
     ret_val.end_pos = pch - input + 1;
     ret_val.can_continue = false;
-    // Revert to original neighbor list.
     graph->v[graph->count - 1].p = p_ptr;
+    graph->v[graph->count - 1].p_count = temp;
     return ret_val;
   }
 
@@ -558,6 +571,7 @@ struct dre2_match_value dre2_eolf_match( struct dre2 *graph, unsigned char *inpu
   if ( !graph->all_anchored )
   {
     graph->v[graph->count - 1].p = graph->v[graph->count - 1].unanchored;
+    graph->v[graph->count - 1].p_count = graph->v[graph->count - 1].u_count;
 
     switch ( graph->secondary_method )
     {
@@ -577,9 +591,9 @@ struct dre2_match_value dre2_eolf_match( struct dre2 *graph, unsigned char *inpu
         ret_val = dre2_mn( graph, input, length, r_temp, reachable, state );
         break;
     }
-    // Revert to the original neighbor list.
-    graph->v[graph->count - 1].p = p_ptr;
   }
+  graph->v[graph->count - 1].p = p_ptr;
+  graph->v[graph->count - 1].p_count = temp;
   return ret_val;
 }
 
@@ -610,6 +624,7 @@ struct dre2_match_value dre2_match( struct dre2 *graph, unsigned char *input )
 
   // Make sure the string is even long enough before attempting matching.
   length = strlen( input );
+
   if ( length < graph->min_length )
     return result;
 
