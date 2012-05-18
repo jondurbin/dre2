@@ -36,6 +36,121 @@ const int dre2_frequency[RANGE] = {
  123, 124, 126, 127, 128, 129, 130, 131
 };
 
+const int dre2_predefined_classes[11][256] = {
+  // Alphas.
+  {
+   'a','b','c','d','e','f','g','h','i','j',
+   'k','l','m','n','o','p','q','r','s','t',
+   'u','v','w','x','y','z','A','B','C','D',
+   'E','F','G','H','I','J','K','L','M','N',
+   'O','P','Q','R','S','T','U','V','W','X',
+   'Y','Z', -1,
+  },
+
+  // Not-alphanumeric or '-'
+  {
+     0, 1,  2,  3,  4,  5,  6,  7,  8,  9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+    40, 41, 42, 43, 44, 46, 47, 58, 59, 60,
+    61, 62, 63, 64, 91, 92, 93, 94, 95, 96,
+   123,124,125,126,127,128,129,130,131,132,
+   133,134,135,136,137,138,139,140,141,142,
+   143,144,145,146,147,148,149,150,151,152,
+   153,154,155,156,157,158,159,160,161,162,
+   163,164,165,166,167,168,169,170,171,172,
+   173,174,175,176,177,178,179,180,181,182,
+   183,184,185,186,187,188,189,190,191,192,
+   193,194,195,196,197,198,199,200,201,202,
+   203,204,205,206,207,208,209,210,211,212,
+   213,214,215,216,217,218,219,220,221,222,
+   223,224,225,226,227,228,229,230,231,232,
+   233,234,235,236,237,238,239,240,241,242,
+   243,244,245,246,247,248,249,250,251,252,
+   253,254,255,-1
+  },
+
+  // Digit.
+  {
+   '0','1','2','3','4','5','6','7','8','9',
+    -1
+  },
+
+  // Digits, including 8-bit obfuscation digits.
+  {
+   '0','1','2','3','4','5','6','7','8','9',
+   215,225,226,231,238,239,247,250,254,-1
+  },
+
+  // 8-bit obfuscation digits.
+  {
+   215,225,226,231,238,239,247,250,254,-1
+  },
+
+  // Hex characters.
+  {
+   'a','b','c','d','e','f','A','B','C','D',
+   'E','F','0','1','2','3','4','5','6','7',
+   '8','9',-1
+  },
+
+  // URL characters.
+  {
+   'a','b','c','d','e','f','g','h','i','j',
+   'k','l','m','n','o','p','q','r','s','t',
+   'u','v','w','x','y','z','A','B','C','D',
+   'E','F','G','H','I','J','K','L','M','N',
+   'O','P','Q','R','S','T','U','V','W','X',
+   'Y','Z','0','1','2','3','4','5','6','7',
+   '8','9','-','.','/',':','_','@',-1
+  },
+
+  // Domain chars.
+  {
+   'a','b','c','d','e','f','g','h','i','j',
+   'k','l','m','n','o','p','q','r','s','t',
+   'u','v','w','x','y','z','A','B','C','D',
+   'E','F','G','H','I','J','K','L','M','N',
+   'O','P','Q','R','S','T','U','V','W','X',
+   'Y','Z','0','1','2','3','4','5','6','7',
+   '8','9','-','.',-1
+  },
+
+  // Word chars.
+  {
+   'a','b','c','d','e','f','g','h','i','j',
+   'k','l','m','n','o','p','q','r','s','t',
+   'u','v','w','x','y','z','A','B','C','D',
+   'E','F','G','H','I','J','K','L','M','N',
+   'O','P','Q','R','S','T','U','V','W','X',
+   'Y','Z','0','1','2','3','4','5','6','7',
+   '8','9','-',-1
+  },
+
+  // White space.
+  {
+   ' ','\t','\n','\r','\f',-1
+  },
+
+  // 8 bit.
+  {
+   128,129,130,131,132,133,134,135,136,137,
+   138,139,140,141,142,143,144,145,146,147,
+   148,149,150,151,152,153,154,155,156,157,
+   158,159,160,161,162,163,164,165,166,167,
+   168,169,170,171,172,173,174,175,176,177,
+   178,179,180,181,182,183,184,185,186,187,
+   188,189,190,191,192,193,194,195,196,197,
+   198,199,200,201,202,203,204,205,206,207,
+   208,209,210,211,212,213,214,215,216,217,
+   218,219,220,221,222,223,224,225,226,227,
+   228,229,230,231,232,233,234,235,236,237,
+   238,239,240,241,242,243,244,245,246,247,
+   248,249,250,251,252,253,254,255,-1
+  }
+};
+
 // Create an escaped string, optionally with skip-matching.
 unsigned char *dre2_escaped( unsigned char *re )
 {
@@ -153,219 +268,106 @@ int dre2_contains_char( unsigned char *string, unsigned char c )
 // Predefined character classes, e.g. \a, \d, \s, etc.
 void dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action, int part_of_class )
 {
-  int k;
+  int i, index;
   if ( !part_of_class )
   {
     free( node->possible );
     node->possible = NULL;
-  }
-
-  if ( *c == 'a' )
-  {
-    // Match any alphabetic character.
-    if ( part_of_class )
+    switch ( *c )
     {
-      for ( k = 'a'; k <= 'z'; k++ )
-        node->possible[k] = action;
-    } else
-    {
-      node->c = DRE2_ALPHA;
+      case 'a':
+        node->c = DRE2_ALPHA;
+        break;
+      case 'b':
+        node->c = DRE2_BORDER;
+        break;
+      case 'd':
+        node->c = DRE2_DIGIT;
+        break;
+      case 'e':
+        node->c = DRE2_SIM_DIGIT;
+        break;
+      case 'f':
+        node->c = DRE2_OBF_DIGIT;
+        break;
+      case 'h':
+        node->c = DRE2_HEX;
+        break;
+      case 'u':
+        node->c = DRE2_URL;
+        break;
+      case 'v':
+        node->c = DRE2_DOMAIN;
+        break;
+      case 'w':
+        node->c = DRE2_WORD;
+        break;
+      case 's': 
+        node->c = DRE2_WHITE_SPACE;
+        break;
+      case '8':
+        node->c = DRE2_8BIT;
+        break;
+      case 'n':
+        node->c = '\n';
+        break;
+      case 'r':
+        node->c = '\r';
+        break;
+      case 't':
+        node->c = '\t';
+        break;
+      default:
+        node->c = *c;
+        break;
     }
-  } else if ( *c == 'b' )
-  {
-    // Non-alphanumeric or '-'
-    if ( part_of_class )
-    {
-      for ( k = 'a'; k < 'z'; k++ )
-        node->possible[k] = action == true ? false : true;
-      for ( k = 'A'; k < 'Z'; k++ )
-        node->possible[k] = action == true ? false : true;
-      for ( k = '0'; k < '9'; k++ )
-        node->possible[k] = action == true ? false : true;
-      node->possible['-'] = action == true ? false : true;
-    } else
-    {
-      node->c = DRE2_BORDER;
-    }
-  } else if ( *c == 'd' )
-  {
-    // Match any digit.
-    if ( part_of_class )
-    {
-      for ( k = '0'; k <= '9'; k++ )
-        node->possible[k] = action;
-    } else
-    {
-      node->c = DRE2_DIGIT;
-    }
-  } else if ( *c == 'e' )
-  {
-    // Match any digit, including 8-bit obfuscations.
-    if ( part_of_class )
-    {
-      for ( k = '0'; k <= '9'; k++ )
-        node->possible[k] = action;
-      node->possible[215] = action; //× "4" in CP1251 ("3" in ISO-8859-5)
-      node->possible[225] = action; //á - (225/E1) - "6" in CP1251
-      node->possible[226] = action; //â - (226/E2) - "6" in KOI8-R
-      node->possible[231] = action; //ç - (231/E7) - "3" in CP1251 ("4" in ISO-8859-5)
-      node->possible[238] = action; //î - (238/EE) - "0" in CP1251
-      node->possible[239] = action; //ï - (239/EF) - "0" in KOI8-R
-      node->possible[247] = action; //÷ - (247/F7) - "4" in CP1251
-      node->possible[250] = action; //ú - (250/FA) - "3" in KOI8-R
-      node->possible[254] = action; //þ - (254/FE) - "4" in KOI8-R
-    } else
-    {
-      node->c = DRE2_SIM_DIGIT;
-    }
-  } else if ( *c == 'f' )
-  {
-    // Match any 8-bit obfuscations.
-    if ( part_of_class )
-    {
-      node->possible[215] = action; //× "4" in CP1251 ("3" in ISO-8859-5)
-      node->possible[225] = action; //á - (225/E1) - "6" in CP1251
-      node->possible[226] = action; //â - (226/E2) - "6" in KOI8-R
-      node->possible[231] = action; //ç - (231/E7) - "3" in CP1251 ("4" in ISO-8859-5)
-      node->possible[238] = action; //î - (238/EE) - "0" in CP1251
-      node->possible[239] = action; //ï - (239/EF) - "0" in KOI8-R
-      node->possible[247] = action; //÷ - (247/F7) - "4" in CP1251
-      node->possible[250] = action; //ú - (250/FA) - "3" in KOI8-R
-      node->possible[254] = action; //þ - (254/FE) - "4" in KOI8-R
-    } else
-    {
-      node->c = DRE2_OBF_DIGIT;
-    }
-  } else if ( *c == 'h' )
-  {
-    // Match any hex digit.
-    if ( part_of_class )
-    {
-      for ( k = '0'; k <= '9'; k++ )
-        node->possible[k] = action;
-      for ( k = 'a'; k <= 'f'; k++ )
-        node->possible[k] = action;
-      for ( k = 'A'; k <= 'F'; k++ )
-        node->possible[k] = action;
-    } else
-    {
-      node->c = DRE2_HEX;
-    }
-  } else if ( *c == 'u' )
-  {
-    // Match any char allowed in URLs: <alphanum> . - / : _ @
-    if ( part_of_class )
-    {
-      for ( k = '0'; k <= '9'; k++ )
-        node->possible[k] = action;
-      for ( k = 'a'; k <= 'z'; k++ )
-        node->possible[k] = action;
-      for ( k = 'A'; k <= 'Z'; k++ )
-        node->possible[k] = action;
-      node->possible['-'] = action;
-      node->possible['.'] = action;
-      node->possible['/'] = action;
-      node->possible[':'] = action;
-      node->possible['_'] = action;
-      node->possible['@'] = action;
-    } else
-    {
-      node->c = DRE2_URL;
-    }
-  } else if ( *c == 'v' )
-  {
-    // Match any character allowed in domains: <alphanum> . -
-    if ( part_of_class )
-    {
-      for ( k = '0'; k <= '9'; k++ )
-        node->possible[k] = action;
-      for ( k = 'a'; k <= 'z'; k++ )
-        node->possible[k] = action;
-      for ( k = 'A'; k <= 'Z'; k++ )
-        node->possible[k] = action;
-      node->possible['.'] = action;
-      node->possible['-'] = action;
-    } else
-    {
-      node->c = DRE2_DOMAIN;
-    }
-  } else if ( *c == 'w' )
-  {
-    // Match any alphanumeric or '-'
-    if ( part_of_class )
-    {
-      for ( k = '0'; k <= '9'; k++ )
-        node->possible[k] = action;
-      for ( k = 'a'; k <= 'z'; k++ )
-        node->possible[k] = action;
-      for ( k = 'A'; k <= 'Z'; k++ )
-        node->possible[k] = action;
-      node->possible['-'] = action;
-    } else
-    {
-      node->c = DRE2_WORD;
-    }
-  } else if ( *c == 's' )
-  {
-    // Match a space or tab (or newline, carriage return, or form feed.
-    if ( part_of_class )
-    {
-      node->possible['\t'] = action;
-      node->possible['\n'] = action;
-      node->possible['\r'] = action;
-      node->possible['\f'] = action;
-      node->possible[' '] = action;
-    } else
-    {
-      node->c = DRE2_WHITE_SPACE;
-    }
-  } else if ( *c == 'z' )
-  {
-    // Match end of message.
-    if ( !part_of_class )
-      node->c = DRE2_EOF;
-  } else if ( *c == '8' )
-  {
-    // Match any 8-bit char.
-    if ( part_of_class )
-    {
-      for ( k = 128; k < RANGE; k++ )
-        node->possible[k] = action;
-    } else
-    {
-      node->c = DRE2_8BIT;
-    }
-  } else if ( *c == 'n' )
-  {
-    if ( part_of_class )
-      node->possible['\n'] = action;
-    else
-      node->c = '\n';
-  } else if ( *c == 'r' )
-  {
-    if ( part_of_class )
-      node->possible['\r'] = action;
-    else
-      node->c = '\r';
-  } else if ( *c == 't' )
-  {
-    if ( part_of_class )
-      node->possible['\t'] = action;
-    else
-      node->c = '\t';
-  } else if ( *c == 'f' )
-  {
-    if ( part_of_class )
-      node->possible['\f'] = action;
-    else
-      node->c = '\f';
   } else
   {
-    // Match literal '\', '.', '?', '*', '+', etc.
-    if ( part_of_class )
-      node->possible[*c] = action;
-    else
-      node->c = *c;
+    switch ( *c )
+    {
+      case 'a':
+        index = 0;
+      case 'b':
+        index = 1;
+      case 'd':
+        index = 2;
+      case 'e':
+        index = 3;
+      case 'f':
+        index = 4;
+      case 'h':
+        index = 5;
+      case 'u':
+        index = 6;
+      case 'v':
+        index = 7;
+      case 'w':
+        index = 8;
+      case 's':
+        index = 9;
+      case '8':
+        index = 10;
+        // Go through the array.
+        i = 0;
+        while ( dre2_predefined_classes[index][i] != -1 )
+        {
+          node->possible[dre2_predefined_classes[index][i]] = action;
+          i++;
+        }
+        break;
+      case 'n':
+        node->possible['\n'] = action;
+        break;
+      case 'r':
+        node->possible['\r'] = action;
+        break;
+      case 't':
+        node->possible['\t'] = action;
+        break;
+      default:
+        node->possible[*c] = action;
+        break;
+    }
   }
 }
 
@@ -703,91 +705,44 @@ void dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, str
 int dre2_node_cost( struct dre2 *graph, int id )
 {
   int i, j;
+  int index;
   int cost;
   struct dre2_node *node;
 
   node = &graph->v[id];
-
   cost = 0;
-  switch( node->c )
+  if ( node->c >= 0 )
   {
-    case DRE2_DOT:
+    return dre2_frequency[node->c];
+  } else if ( node->c >= DRE2_8BIT && node->c <= DRE2_ALPHA )
+  {
+    index = node->c * -1 - 5;
+    i = 0;
+    while ( dre2_predefined_classes[index][i] != -1 )
+    {
+      cost += dre2_frequency[dre2_predefined_classes[index][i]];
+      i++;
+    }
+    return cost;
+  } else
+  {
+    if ( node->c == DRE2_DOT )
+    {
       for ( i = 0; i < RANGE; i++ )
         cost += dre2_frequency[i];
       return cost;
-    case DRE2_ALPHA:
-      for ( i = 'a'; i <= 'z'; i++ )
-        cost += dre2_frequency[i];
-      for ( i = 'A'; i <= 'Z'; i++ )
-        cost += dre2_frequency[i];
-      return cost;
-    case DRE2_WORD:
-      for ( i = 'a'; i <= 'z'; i++ )
-        cost += dre2_frequency[i];
-      for ( i = 'A'; i <= 'Z'; i++ )
-        cost += dre2_frequency[i];
-      for ( i = '0'; i <= '9'; i++ )
-        cost += dre2_frequency[i];
-      cost += dre2_frequency['-'];
-      return cost;
-    case DRE2_DOMAIN:
-      for ( i = 'a'; i <= 'z'; i++ ) 
-        cost += dre2_frequency[i];
-      for ( i = 'A'; i <= 'Z'; i++ )
-        cost += dre2_frequency[i];
-      for ( i = '0'; i <= '9'; i++ )
-        cost += dre2_frequency[i];
-      cost += dre2_frequency['-'] + dre2_frequency['.'];
-      return cost;
-    case DRE2_URL:
-      for ( i = 'a'; i <= 'z'; i++ )
-        cost += dre2_frequency[i];
-      for ( i = 'A'; i <= 'Z'; i++ )
-        cost += dre2_frequency[i];
-      for ( i = '0'; i <= '9'; i++ )
-        cost += dre2_frequency[i];
-      cost += dre2_frequency['-'] + dre2_frequency['.'] + dre2_frequency['/'] + dre2_frequency[':'] + dre2_frequency['_'] + dre2_frequency['@'];
-      return cost;
-    case DRE2_DIGIT:
-      for ( i = '0'; i <= '9'; i++ )
-        cost += dre2_frequency[i];
-      return cost;
-    case DRE2_BORDER:
-      for ( i = 0; i < RANGE; i++ )
-      {
-        if ( ( i >= 'a' && i <= 'z' ) || ( i >= 'A' && i <= 'Z' ) || ( i >= '0' && i <= '9' ) || ( i == '-' ) )
-          continue;
-        cost += dre2_frequency[i];
-      }
-      return cost;
-    case DRE2_WHITE_SPACE:
-      cost = dre2_frequency[' '] + dre2_frequency['\t'] + dre2_frequency['\r'] + dre2_frequency['\f'] + dre2_frequency['\n'];
-      return cost;
-    case DRE2_CHAR_CLASS:
+    } else if ( node->c == DRE2_CHAR_CLASS )
+    {
       for ( i = 0; i < RANGE; i++ )
       {
         if ( node->possible[i] )
           cost += dre2_frequency[i];
       }
       return cost;
-    case DRE2_SIM_DIGIT:
-      for ( i = '0'; i <= '9'; i++ )
-        cost += dre2_frequency[i];
-      cost += dre2_frequency[215] + dre2_frequency[225] + dre2_frequency[226] + dre2_frequency[231] + dre2_frequency[238] + dre2_frequency[239] + dre2_frequency[247] + dre2_frequency[250] + dre2_frequency[254];
-      return cost;
-    case DRE2_OBF_DIGIT:
-      cost = dre2_frequency[215] + dre2_frequency[225] + dre2_frequency[226] + dre2_frequency[231] + dre2_frequency[238] + dre2_frequency[239] + dre2_frequency[247] + dre2_frequency[250] + dre2_frequency[254];
-      return cost;
-    case DRE2_HEX:
-      for ( i = 'a'; i <= 'f'; i++ )
-        cost += dre2_frequency[i];
-      for ( i = 'A'; i <= 'F'; i++ )
-        cost += dre2_frequency[i];
-      for ( i = '0'; i <= '9'; i++ )
-        cost += dre2_frequency[i];
-      return cost;
-    default:
-      return dre2_frequency[node->c];
+    } else
+    {
+      return RANGE * RANGE;
+    }
   }
 }
 
@@ -844,60 +799,15 @@ int dre2_best_choice( struct dre2 *graph, int *required, int count )
 void dre2_set_chars( struct dre2 *graph, int id )
 {
   int i, iter;
+  int index;
   struct dre2_node *node;
 
   node = &graph->v[id];
-  if ( node->c == DRE2_DOT )
+
+  if ( node->c >= 0 )
   {
-    for ( i = 0; i < RANGE; i++ )
-      graph->starting_chars[i] = true;
-  }
-  if ( node->c == DRE2_ALPHA || node->c == DRE2_WORD || node->c == DRE2_DOMAIN || node->c == DRE2_URL )
-  {
-    for ( i = 'a'; i <= 'z'; i++ )
-      graph->starting_chars[i] = true;
-    for ( i = 'A'; i <= 'Z'; i++ )
-      graph->starting_chars[i] = i;
-  }
-  if ( node->c == DRE2_WORD || node->c == DRE2_DOMAIN || node->c == DRE2_URL || node->c == DRE2_DIGIT || node->c == DRE2_SIM_DIGIT || node->c == DRE2_HEX )
-  {
-    for ( i = '0'; i <= '9'; i++ )
-      graph->starting_chars[i] = true;
-  }
-  if ( node->c == DRE2_WORD )
-    graph->starting_chars['-'] = true;
-  if ( node->c == DRE2_DOMAIN )
-  {
-    graph->starting_chars['-'] = true;
-    graph->starting_chars['.'] = true;
-  }
-  if ( node->c == DRE2_URL )
-  {
-    graph->starting_chars['-'] = true;
-    graph->starting_chars['.'] = true;
-    graph->starting_chars['/'] = true;
-    graph->starting_chars[':'] = true;
-    graph->starting_chars['_'] = true;
-    graph->starting_chars['@'] = true;
-  }
-  if ( node->c == DRE2_BORDER )
-  {
-    for ( i = 0; i < RANGE; i++ )
-    {
-      if ( ( i >= 'a' && i <= 'z' ) || ( i >= 'A' && i <= 'Z' ) || ( i >= '0' && i <= '9' ) || ( i == '-' ) )
-        continue;
-      graph->starting_chars[i] = true;
-    }
-  }
-  if ( node->c == DRE2_WHITE_SPACE )
-  {
-    graph->starting_chars[' '] = true;
-    graph->starting_chars['\t'] = true;
-    graph->starting_chars['\r'] = true;
-    graph->starting_chars['\f'] = true;
-    graph->starting_chars['\n'] = true;
-  }
-  if ( node->c == DRE2_CHAR_CLASS )
+    graph->starting_chars[node->c] = true;
+  } else if ( node->c == DRE2_CHAR_CLASS )
   {
     for ( i = 0; i < RANGE; i++ )
     {
@@ -910,35 +820,14 @@ void dre2_set_chars( struct dre2 *graph, int id )
           graph->starting_chars[i + ( 'a' - 'A' ) ] = true;
       }
     }
-  }
-  if ( node->c == DRE2_SIM_DIGIT || node->c == DRE2_OBF_DIGIT )
+  } else if ( node->c >= DRE2_8BIT && node->c <= DRE2_ALPHA )
   {
-    graph->starting_chars[215] = true;
-    graph->starting_chars[225] = true;
-    graph->starting_chars[226] = true;
-    graph->starting_chars[231] = true;
-    graph->starting_chars[238] = true;
-    graph->starting_chars[239] = true;
-    graph->starting_chars[247] = true;
-    graph->starting_chars[250] = true;
-    graph->starting_chars[254] = true;
-  }
-  if ( node->c == DRE2_HEX )
-  {
-    for ( i = 'a'; i <= 'f'; i++ )
-      graph->starting_chars[i] = true;
-    for ( i = 'A'; i <= 'F'; i++ )
-      graph->starting_chars[i] = true;
-  }
-  if ( node->c >= 0 )
-  {
-    graph->starting_chars[node->c] = true;
-    if ( graph->options & DRE2_NO_CASE )
+    index = node->c * -1 - 5;
+    i = 0;
+    while ( dre2_predefined_classes[index][i] != -1 )
     {
-      if ( node->c >= 'a' && node->c <= 'z' )
-        graph->starting_chars[node->c - ( 'a' - 'A' ) ] = true;
-      else if ( node->c >= 'A' && node->c <= 'Z' )
-        graph->starting_chars[node->c + ( 'a' - 'A' ) ] = true;
+      graph->starting_chars[dre2_predefined_classes[index][i]] = true;
+      i++;
     }
   }
 }
@@ -1324,7 +1213,6 @@ struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
   struct dre2_node *node;
   struct dre2_fl_cost cost;
   unsigned char *temp;
-  int ok;
   int *tp, *original;
 
   f_n_count = graph->v[0].n_count;
@@ -1401,26 +1289,6 @@ struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
   cost.l_c_count = l_c_count;
   cost.l_frequency = l_frequency;
 
-  ok = true;
-  /*
-  if ( graph->options & DRE2_GREEDY )
-  {
-    for ( i = 0; i < graph->v[graph->count - 1].p_count; i++ )
-    {
-      if ( graph->v[graph->v[graph->count - 1].p[i]].n_count > 1 )
-      {
-        ok = false;
-        break;
-      }
-    }
-    if ( !ok )
-    {
-      cost.l_n_count = 100;
-      cost.l_c_count = RANGE;
-      cost.l_frequency = RANGE * 100;
-    }
-  }
-  */
   return cost;
 }
 
@@ -1665,6 +1533,9 @@ void dre2_skip_table( struct dre2 *graph )
             if ( node->possible[j] && graph->skip_table[j] > total - 1 || graph->skip_table[j] == 0 )
               graph->skip_table[j] = total - 1;
           }
+        } else if ( node->c == DRE2_BOL || node->c == DRE2_EOF || node->c == DRE2_EOL )
+        {
+          total--;
         } else if ( node->c >= 0 )
         {
           if ( graph->skip_table[node->c] > total - 1 || graph->skip_table[node->c] == 0 )
@@ -2417,6 +2288,7 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
 
   graph->v = v;
   graph->count = node_count;
+
   dre2_add_parents( graph );
 
   min_graph->options = options;
@@ -2472,13 +2344,6 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
       break;
     }
   }
-
-  free( new_minimal );
-  free( minimal_id );
-  free( minimal );
-  new_minimal = NULL;
-  minimal_id = NULL;
-  minimal = NULL;
 
   if ( min_graph->match_method == - 1 )
   {
@@ -2569,16 +2434,26 @@ printf( "Primary: %d, Secondary: %d\n", min_graph->match_method, min_graph->seco
     min_graph->state = ( int * )calloc( min_graph->count, sizeof( int ) );
   }
 
+  // Cleanup.
+  free( new_minimal );
+  free( minimal_id );
+  free( minimal );
+  new_minimal = NULL;
+  minimal_id = NULL;
+  minimal = NULL;
+
   return min_graph;
 }
 
 // Display the regex dre2.
 void print_dre2( struct dre2 *graph )
 {
+  int i, j, k;
+  int index, found;
+
   printf( "=======================\n" );
   printf( "|| Node || Neighbors ||\n" );
   printf( "=======================\n" );
-  int i, j;
   for ( i = 0; i < graph->count; i++ )
   {
     if ( graph->v[i].c == DRE2_CHAR_CLASS )
@@ -2592,6 +2467,40 @@ void print_dre2( struct dre2 *graph )
           printf( "." );
       }
       printf( "\n" );
+    } else if ( graph->v[i].c < 0 )
+    {
+      printf( "Node %d C: ", i );
+      if ( graph->v[i].c == DRE2_DOT )
+      {
+        for ( j = 0; j < RANGE; j++ )
+          printf( "x" );
+      } else
+      {
+        index = graph->v[i].c * -1 - 5;
+        if ( index >= 0 && index <= 10 )
+        {
+          j = 0;
+          for ( j = 0; j < RANGE; j++ )
+          {
+            k = 0;
+            found = false;
+            while ( dre2_predefined_classes[index][k] != -1 )
+            {
+              if ( dre2_predefined_classes[index][k] == j )
+              {
+                found = true;
+                break;
+              }
+              k++;
+            }
+            if ( found )
+              printf( "x" );
+            else
+              printf( "." );
+          }
+        }
+      }
+      printf ( "\n" );
     } else
     {
       if ( graph->v[i].c == DRE2_GROUP_OPEN || graph->v[i].c == DRE2_GROUP_CLOSE )
