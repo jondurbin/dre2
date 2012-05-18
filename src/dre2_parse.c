@@ -633,6 +633,16 @@ void cleanup_nodes( struct dre2_node **v, int node_count )
         free( ( *v )[i].min_n );
         ( *v )[i].min_n = NULL;
       }
+      if ( ( *v )[i].unanchored != NULL )
+      {
+        free( ( *v )[i].unanchored );
+        ( *v )[i].unanchored = NULL;
+      }
+      if ( ( *v )[i].anchored != NULL )
+      {
+        free( ( *v )[i].anchored );
+        ( *v )[i].anchored = NULL;
+      }
     }
     free( *v );
     *v = NULL;
@@ -1478,7 +1488,7 @@ int dre2_use_paths( struct dre2 *graph, int best, struct dre2_fl_cost *cost )
   free( tp ); tp = NULL;
 
   if ( b_n_count * b_c_count < p_n_count * p_c_count ||
-     ( b_n_count * b_c_count == p_n_count * p_c_count && b_frequency < p_frequency ) )
+     ( b_n_count * b_c_count == p_n_count * p_c_count && b_frequency <= p_frequency ) )
     return false;
   return true;
 }
@@ -1550,8 +1560,12 @@ void dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal,
   if ( c == DRE2_CHAR_CLASS )
     ( *v )[*node_count - 1].possible = ( int * )calloc( RANGE, sizeof( int ) );
 
-  // Initialize min_n to NULL.
+  // Initialize min_n, unanchored, and anchored to NULL.
   ( *v )[*node_count - 1].min_n = NULL;
+  ( *v )[*node_count - 1].unanchored = NULL;
+  ( *v )[*node_count - 1].u_count = 0;
+  ( *v )[*node_count - 1].anchored = NULL;
+  ( *v )[*node_count - 1].a_count = 0;
 
   dre2_add_minimal( minimal, node_count );
 }
@@ -2147,6 +2161,20 @@ struct dre2_parse_return dre2_parse_recursive( struct dre2_node **v, int *node_c
       // Setup the range.
       dre2_make_range( v, node_count, &last_node, &res, range.min, range.max, minimal );
       pos = range.pos;
+    } else if ( c == '^' || c == '$' )
+    {
+      // Add the node.
+      if ( c == '^' )
+        dre2_add_node( v, node_count, DRE2_BOL, minimal, false );
+      else
+        dre2_add_node( v, node_count, DRE2_EOL, minimal, false );
+
+      // Add it to the previous node's neighbor list.
+      dre2_add_neighbor( v, last_node, *node_count - 1 );
+
+      // Update last node.
+      last_node = *node_count - 1;
+      mod = false;
     } else
     {
       // Add the node.
@@ -2183,6 +2211,156 @@ struct dre2_parse_return dre2_parse_recursive( struct dre2_node **v, int *node_c
   option_end = NULL;
 
   return ret_val;
+}
+
+// Set the unanchored version of the first/last nodes.
+void dre2_anchorize( struct dre2 *graph, int *minimal, int *minimal_id, int minimal_count )
+{
+  int i, j;
+  int *found_at;
+  int count;
+  int u_count, a_count;
+  int *original, temp;
+  int np_count, *next_nodes;
+  int *unanchored;
+  int *anchored;
+
+  // Set the unanchored neighbor list for the first node.
+  unanchored = NULL;
+  anchored = NULL;
+
+  // Find out where the anchor node was.
+  count = 0;
+  found_at = ( int * )malloc( sizeof( int ) * np_count );
+
+  if ( graph->match_method == DRE2_BOL_ANCHORED )
+  {
+    np_count = graph->v[0].n_count;
+    next_nodes = graph->v[0].n;
+  } else
+  {
+    np_count = graph->v[graph->count - 1].p_count;
+    next_nodes = graph->v[graph->count - 1].p;
+  }
+
+  for ( i = 0; i < np_count; i++ )
+  {
+    if ( graph->match_method == DRE2_BOL_ANCHORED && graph->v[next_nodes[i]].c == DRE2_BOL )
+      found_at[count++] = i;
+    else if ( graph->match_method != DRE2_BOL_ANCHORED && ( graph->v[next_nodes[i]].c == DRE2_EOF || graph->v[next_nodes[i]].c == DRE2_EOL ) )
+      found_at[count++] = i;
+  }
+
+  if ( count <= 0 )
+  {
+    // Failed somewhere, need to fix it.
+  } else 
+  {
+    unanchored = ( int * )malloc( sizeof( int ) * graph->count );
+    anchored = ( int * )malloc( sizeof( int ) * graph->count );
+    u_count = 0;
+    a_count = 0;
+    for ( i = 0; i < np_count; i++ )
+    {
+      // If it wasn't an anchor node, just add it to the unanchored list.
+      if ( !dre2_contains_int( found_at, count, i ) )
+      {
+        if ( graph->match_method == DRE2_BOL_ANCHORED )
+        {
+          unanchored[u_count++] = next_nodes[i];
+          printf( "Unanchored node: %d\n", unanchored[u_count - 1] );
+        } else
+        {
+          unanchored[u_count++] = next_nodes[i];
+          printf( "Unanchored node: %d\n", unanchored[u_count - 1] );
+        }
+      // Otherwise, add the anchor node's neighbors to the anchored list.
+      } else
+      {
+        if ( graph->match_method == DRE2_BOL_ANCHORED )
+        {
+          for ( j = 0; j < graph->v[next_nodes[i]].n_count; j++ )
+          {
+            if ( !dre2_contains_int( anchored, a_count, graph->v[next_nodes[i]].n[j] ) )
+            {
+              anchored[a_count++] = graph->v[next_nodes[i]].n[j];
+              printf( "Anchored node: %d\n", anchored[a_count - 1] );
+            }
+          }
+        } else
+        {
+          for ( j = 0; j < graph->v[next_nodes[i]].p_count; j++ )
+          {
+            if ( !dre2_contains_int( anchored, a_count, graph->v[next_nodes[i]].p[j] ) )
+            {
+              anchored[a_count++] = graph->v[next_nodes[i]].p[j];
+              printf( "Anchored node: %d\n", anchored[a_count - 1] );
+            }
+          }
+        }
+      }
+    }
+
+    // If all of the first reachable nodes are anchored, we won't have to do multiple searches.
+    if ( np_count == count )
+    {
+      graph->all_anchored = true;
+      printf( "All first nodes are anchored!\n" );
+    }
+
+    // Set the unanchored and anchored counts.
+    if ( graph->match_method == DRE2_BOL_ANCHORED )
+    {
+      graph->v[0].u_count = u_count;
+      graph->v[0].a_count = a_count;
+      graph->v[0].anchored = anchored;
+      graph->v[0].unanchored = unanchored;
+    } else
+    {
+      graph->v[graph->count - 1].u_count = u_count;
+      graph->v[graph->count - 1].a_count = a_count;
+      graph->v[graph->count - 1].anchored = anchored;
+      graph->v[graph->count - 1].unanchored = unanchored;
+    }
+
+    // Calculate the starting point and chars using the unanchored nodes.
+    if ( !graph->all_anchored )
+    {
+      if ( graph->match_method == DRE2_BOL_ANCHORED )
+      {
+        original = graph->v[0].n;
+        temp = graph->v[0].n_count;
+        graph->v[0].n_count = count;
+        graph->v[0].n = unanchored;
+      } else
+      {
+        original = graph->v[graph->count - 1].p;
+        temp = graph->v[graph->count - 1].p_count;
+        graph->v[graph->count - 1].p_count = count;
+        graph->v[graph->count - 1].p = unanchored;
+      }
+
+      graph->starting_point = dre2_starting_point( graph, minimal, minimal_id, minimal_count );
+      dre2_starting_chars( graph, minimal );
+
+      if ( graph->match_method == DRE2_BOL_ANCHORED )
+      {
+        graph->v[0].n = original;
+        graph->v[0].n_count = temp;
+      } else
+      {
+        graph->v[graph->count - 1].p = original;
+        graph->v[graph->count - 1].p_count = temp;
+      }
+    } else
+    {
+      graph->starting_point = 0;
+    }
+  }
+
+  // Cleanup.
+  free( found_at );
+  found_at = NULL;
 }
 
 // Parse function wrapper.
@@ -2260,10 +2438,6 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   // Setup the skip table.
   dre2_skip_table( min_graph );
 
-  // Find the best starting point and chars.
-  min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
-  dre2_starting_chars( min_graph, new_minimal );
-
   // Clean up the original graph's memory if we don't need it.
   if ( !( options & DRE2_SUBMATCH ) )
   {
@@ -2274,6 +2448,31 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
     min_graph->original = graph;
   }
 
+  // Set the match method to be used.
+  min_graph->match_method = -1;
+
+  // First, check if there is a '^', '$', or '\z' in the regex.
+  for ( i = 0; i < min_graph->count; i++ )
+  {
+    switch ( min_graph->v[i].c )
+    {
+      case DRE2_EOF:
+        min_graph->match_method = DRE2_EOF_ANCHORED;
+        break;
+      case DRE2_EOL:
+        min_graph->match_method = DRE2_EOL_ANCHORED;
+        break;
+      case DRE2_BOL:
+        min_graph->match_method = DRE2_BOL_ANCHORED;
+        break;
+    }
+    if ( min_graph->match_method >= 0 )
+    {
+      dre2_anchorize( min_graph, new_minimal, minimal_id, minimal_count );
+      break;
+    }
+  }
+
   free( new_minimal );
   free( minimal_id );
   free( minimal );
@@ -2281,27 +2480,58 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   minimal_id = NULL;
   minimal = NULL;
 
+  if ( min_graph->match_method == - 1 )
+  {
+    // Find the best starting point and chars.
+    min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
+    dre2_starting_chars( min_graph, new_minimal );
+  }
+
   if ( min_graph->single )
   {
     for ( i = 0; i < RANGE; i++ )
+    {
       if ( min_graph->starting_chars[i] )
         min_graph->c = i;
+    }
   }
+
   if ( min_graph->starting_point == -1 )
   {
-    min_graph->match_method = DRE2_MN;
+    if ( min_graph->match_method != -1 && !min_graph->all_anchored )
+      min_graph->secondary_method = DRE2_MN;
+    else if ( min_graph->match_method == -1 )
+      min_graph->match_method = DRE2_MN;
   } else if ( min_graph->starting_point == 0 || min_graph->starting_point != min_graph->count - 1 )
   {
-    if ( min_graph->single )
-      min_graph->match_method = DRE2_SN_SC;
-    else
-      min_graph->match_method = DRE2_SN_MC;
+    if ( min_graph->match_method == -1 )
+    {
+      if ( min_graph->single )
+        min_graph->match_method = DRE2_SN_SC;
+      else
+        min_graph->match_method = DRE2_SN_MC;
+    } else if ( !min_graph->all_anchored )
+    {
+      if ( min_graph->single )
+        min_graph->secondary_method = DRE2_SN_SC;
+      else
+        min_graph->secondary_method = DRE2_SN_MC;
+    }
   } else
   {
-    if ( min_graph->single )
-      min_graph->match_method = DRE2_SN_SC_H;
-    else
-      min_graph->match_method = DRE2_SN_MC_H;
+    if ( min_graph->match_method == -1 )
+    {
+      if ( min_graph->single )
+        min_graph->match_method = DRE2_SN_SC_H;
+      else
+        min_graph->match_method = DRE2_SN_MC_H;
+    } else if ( !min_graph->all_anchored )
+    {
+      if ( min_graph->single )
+        min_graph->secondary_method = DRE2_SN_SC_H;
+      else
+        min_graph->secondary_method = DRE2_SN_MC_H;
+    }
   }
 
   // Make it case-insensitive.
@@ -2324,6 +2554,8 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
       }
     }
   }
+
+printf( "Primary: %d, Secondary: %d\n", min_graph->match_method, min_graph->secondary_method );
 
   if ( options & DRE2_THREAD_SAFE )
   {
