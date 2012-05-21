@@ -317,6 +317,9 @@ void dre2_predefined_class( struct dre2_node *node, unsigned char *c, int action
       case 't':
         node->c = '\t';
         break;
+      case 'z':
+        node->c = DRE2_EOF;
+        break;
       default:
         node->c = *c;
         break;
@@ -635,16 +638,6 @@ void cleanup_nodes( struct dre2_node **v, int node_count )
         free( ( *v )[i].min_n );
         ( *v )[i].min_n = NULL;
       }
-      if ( ( *v )[i].unanchored != NULL )
-      {
-        free( ( *v )[i].unanchored );
-        ( *v )[i].unanchored = NULL;
-      }
-      if ( ( *v )[i].anchored != NULL )
-      {
-        free( ( *v )[i].anchored );
-        ( *v )[i].anchored = NULL;
-      }
     }
     free( *v );
     *v = NULL;
@@ -781,7 +774,6 @@ int dre2_best_choice( struct dre2 *graph, int *required, int count )
       }
     }
   }
-
   best = ids[0];
 
   if ( graph->options & DRE2_GREEDY && !literal && dre2_contains_int( required, count, graph->count - 2 ) )
@@ -803,7 +795,6 @@ void dre2_set_chars( struct dre2 *graph, int id )
   struct dre2_node *node;
 
   node = &graph->v[id];
-
   if ( node->c >= 0 )
   {
     graph->starting_chars[node->c] = true;
@@ -812,14 +803,12 @@ void dre2_set_chars( struct dre2 *graph, int id )
     for ( i = 0; i < RANGE; i++ )
     {
       if ( node->possible[i] )
-      {
         graph->starting_chars[i] = true;
-        if ( i >= 'a' && i <= 'z' )
-          graph->starting_chars[i - ( 'a' - 'A' ) ] = true;
-        else if ( i >= 'A' && i <= 'Z' )
-          graph->starting_chars[i + ( 'a' - 'A' ) ] = true;
-      }
     }
+  } else if ( node->c == DRE2_DOT )
+  {
+    for ( i = 0; i < RANGE; i++ )
+      graph->starting_chars[i] = true;
   } else if ( node->c >= DRE2_8BIT && node->c <= DRE2_ALPHA )
   {
     index = node->c * -1 - 5;
@@ -839,14 +828,10 @@ void dre2_starting_chars( struct dre2 *graph, int *minimal )
   struct dre2_node *node;
 
   for ( i = 0; i < RANGE; i++ )
-  {
     graph->starting_chars[i] = false;
-  }
 
   if ( graph->starting_point == graph->count - 1 && graph->v[graph->count - 1].n_count > 0 && ( graph->options & DRE2_GREEDY ) )
-  {
     graph->starting_point = 0;
-  }
 
   if ( graph->starting_point == -1 )
   {
@@ -946,10 +931,21 @@ int dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int 
   best = -1;
   if ( path_count == 1 && paths[0].count > 2 )
   {
-    required_count = paths[0].count - 2;
+    required_count = 0;
     required = ( int * )malloc( sizeof( int ) * required_count );
     for ( i = 1; i < paths[0].count -1; i++ )
-      required[i - 1] = paths[0].nodes[i];
+    {
+      switch ( graph->v[paths[0].nodes[i]].c )
+      {
+        case DRE2_BOL:
+        case DRE2_EOL:
+        case DRE2_EOF:
+          break;
+        default:
+          required[required_count++] = paths[0].nodes[i];
+          break;
+      }
+    }
     best = dre2_best_choice( graph, required, required_count );
     goto INITIAL_CLEANUP;
   } else if ( path_count > 1 )
@@ -960,19 +956,28 @@ int dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int 
     {
       all = true;
       id = minimal_id[i];
-      for ( j = 0; j < path_count; j++ )
+      switch ( graph->v[id].c )
       {
-        if ( !dre2_binsearch( paths[j].nodes, 0, paths[j].count - 1, id ) )
-        {
-          all = false;
-        } else
-        {
-          found_in_count[i - 1]++;
-          found_in[i - 1][found_in_count[i - 1] - 1] = j;
-        }
+        case DRE2_BOL:
+        case DRE2_EOL:
+        case DRE2_EOF:
+          break;
+        default:
+          for ( j = 0; j < path_count; j++ )
+          {
+            if ( !dre2_binsearch( paths[j].nodes, 0, paths[j].count - 1, id ) )
+            {
+              all = false;
+            } else
+            {
+              found_in_count[i - 1]++;
+              found_in[i - 1][found_in_count[i - 1] - 1] = j;
+            }
+          }
+          if ( all )
+            required[required_count++] = id;
+          break;
       }
-      if ( all )
-        required[required_count++] = id;
     }
     if ( required_count > 0 )
     {
@@ -982,8 +987,8 @@ int dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int 
   }
 
   best = dre2_first_or_last( graph, &cost );
-  INITIAL_CLEANUP:
 
+  INITIAL_CLEANUP:
   if ( path_count > 1 && dre2_use_paths( graph, best, &cost ) )
     best = -1;
 
@@ -1218,6 +1223,7 @@ struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
   f_n_count = graph->v[0].n_count;
   f_c_count = 0;
   f_frequency = 0;
+
   l_n_count = graph->v[graph->count - 1].p_count;
   l_c_count = 0;
   l_frequency = 0;
@@ -1238,13 +1244,15 @@ struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
   temp = ( unsigned char * )malloc( sizeof( unsigned char ) * RANGE );
 
   original = graph->starting_chars;
-  graph->starting_chars = tp;
-
   for ( k = 0; k < 2; k++ )
   {
-    for ( i = 0; i < RANGE; i++ )
-      tp[i] = '\0';
     graph->starting_chars = tp;
+    for ( i = 0; i < RANGE; i++ )
+    {
+      tp[i] = false;
+      temp[i] = '\0';
+    }
+
     if ( k == 0 )
     {
       next_count = graph->v[0].n_count;
@@ -1261,7 +1269,7 @@ struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
       dre2_set_chars( graph, next_ptr[i] );
       for ( j = 1; j < RANGE; j++ )
       {
-        if ( graph->starting_chars[j] && !dre2_contains_char( temp, j ) )
+        if ( tp[j] && !dre2_contains_char( temp, j ) )
         {
           if ( k == 0 )
           {
@@ -1274,6 +1282,8 @@ struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
             temp[l_c_count - 1] = j;
             l_frequency += dre2_frequency[j];
           }
+        } else
+        {
         }
       }
     }
@@ -1290,6 +1300,28 @@ struct dre2_fl_cost dre2_first_or_last_cost( struct dre2 *graph, int *minimal )
   cost.l_frequency = l_frequency;
 
   return cost;
+}
+
+// See if the first or last node is better.
+int dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost *cost )
+{
+  int i, j;
+  double first, last, diff;
+
+  first = ( double )cost->f_frequency;
+  last = ( double )cost->l_frequency;
+  diff = first / last;
+
+  if ( cost->l_n_count == 1 && graph->v[graph->v[graph->count - 1].p[0]].c == DRE2_EOF )
+  {
+    return 0;
+  } else {
+    if ( cost->l_n_count * cost->l_c_count < cost->f_n_count * cost->f_c_count ||
+       ( cost->l_n_count * cost->l_c_count == cost->f_n_count * cost->f_c_count && cost->l_frequency < cost->f_frequency ) ||
+       ( cost->l_n_count * cost->l_c_count == cost->f_n_count * cost->f_c_count && diff >= 0.9 ) )
+       return graph->count - 1;
+  }
+  return 0;
 }
 
 // See if it might be better to start somewhere in the middle of the graph.
@@ -1330,9 +1362,6 @@ int dre2_use_paths( struct dre2 *graph, int best, struct dre2_fl_cost *cost )
   p_n_count = graph->starting_count;
   for ( i = 0; i < RANGE; i++ )
     tp[i] = false;
-
-  for ( i = 0; i < RANGE; i++ )
-    tp[i] = false;
   graph->starting_chars = tp;
 
   p_c_count = 0;
@@ -1352,35 +1381,15 @@ int dre2_use_paths( struct dre2 *graph, int best, struct dre2_fl_cost *cost )
   }
 
   graph->starting_chars = original;
-  free( temp ); temp = NULL;
-  free( tp ); tp = NULL;
+  free( temp );
+  temp = NULL;
+  free( tp );
+  tp = NULL;
 
   if ( b_n_count * b_c_count < p_n_count * p_c_count ||
      ( b_n_count * b_c_count == p_n_count * p_c_count && b_frequency <= p_frequency ) )
     return false;
   return true;
-}
-
-// Use first or last node as starting point.
-int dre2_first_or_last( struct dre2 *graph, struct dre2_fl_cost *cost )
-{
-  int i, j;
-  double first, last, diff;
-
-  first = ( double )cost->f_frequency;
-  last = ( double )cost->l_frequency;
-  diff = first / last;
-
-  if ( cost->l_n_count == 1 && graph->v[graph->v[graph->count - 1].p[0]].c == DRE2_EOF )
-  {
-    return 0;
-  } else {
-    if ( cost->l_n_count * cost->l_c_count < cost->f_n_count * cost->f_c_count ||
-       ( cost->l_n_count * cost->l_c_count == cost->f_n_count * cost->f_c_count && cost->l_frequency < cost->f_frequency ) ||
-       ( cost->l_n_count * cost->l_c_count == cost->f_n_count * cost->f_c_count && diff >= 0.9 ) )
-       return graph->count - 1;
-  }
-  return 0;
 }
 
 // Set the minimal bit to false.
@@ -1428,12 +1437,8 @@ void dre2_add_node( struct dre2_node **v, int *node_count, int c, int **minimal,
   if ( c == DRE2_CHAR_CLASS )
     ( *v )[*node_count - 1].possible = ( int * )calloc( RANGE, sizeof( int ) );
 
-  // Initialize min_n, unanchored, and anchored to NULL.
+  // Initialize min_n to NULL.
   ( *v )[*node_count - 1].min_n = NULL;
-  ( *v )[*node_count - 1].unanchored = NULL;
-  ( *v )[*node_count - 1].u_count = 0;
-  ( *v )[*node_count - 1].anchored = NULL;
-  ( *v )[*node_count - 1].a_count = 0;
 
   dre2_add_minimal( minimal, node_count );
 }
@@ -1460,6 +1465,126 @@ void dre2_add_parents( struct dre2 *graph )
       neighbor->p_count++;
       neighbor->p = ( int * )realloc( neighbor->p, sizeof( int ) * neighbor->p_count );
       neighbor->p[neighbor->p_count - 1] = i;
+    }
+  }
+}
+
+// Find out how many characters we can skip before our starting point.
+int dre2_initial_skip( struct dre2 *graph )
+{
+  int i, j;
+  int complete;
+  int *reachable, *r_temp, *swapper;
+  int count, c_temp;
+  int total;
+
+  count = 0;
+  reachable = ( int * )malloc( sizeof( int ) * graph->count );
+  r_temp = ( int * )malloc( sizeof( int ) * graph->count );
+
+  for ( i = 0; i < graph->v[0].n_count; i++ )
+  {
+    reachable[count++] = graph->v[0].n[i];
+  }
+
+  total = 0;
+  complete = false;
+  while ( true )
+  {
+    c_temp = 0;
+    if ( count == 1 )
+    {
+      if ( ( graph->v[reachable[0]].c == DRE2_BOL ) ||
+           ( graph->v[reachable[0]].c == DRE2_EOL ) ||
+           ( graph->v[reachable[0]].c == DRE2_EOF ) )
+        total--;
+    }
+    for ( i = 0; i < count; i++ )
+    {
+      if ( reachable[i] == graph->starting_point )
+      {
+        total--;
+        complete = true;
+        break;
+      }
+      for ( j = 0; j < graph->v[reachable[i]].n_count; j++ )
+      {
+        if ( graph->v[reachable[i]].n[j] > reachable[i] )
+          r_temp[c_temp++] = graph->v[reachable[i]].n[j];
+      }
+    }
+
+    total++;
+    if ( complete )
+      break;
+    count = c_temp;
+    swapper = reachable;
+    reachable = r_temp;
+    r_temp = swapper;
+  }
+
+  free( reachable );
+  free( r_temp );
+  reachable = NULL;
+  r_temp = NULL;
+
+  return total;
+}
+
+// Find all impossible characters.
+void dre2_impossible_chars( struct dre2 *graph )
+{
+  int i, j, c;
+  int index;
+
+  // Initialize all chars to possible.
+  for ( i = 0; i < RANGE; i++ )
+    graph->impossible[i] = true;
+
+  // Make possible all nodes found.
+  for ( i = 0; i < graph->count; i++ )
+  {
+    c = graph->v[i].c;
+    if ( c >= 0 )
+    {
+      graph->impossible[c] = false;
+      if ( graph->options & DRE2_NO_CASE )
+      {
+        if ( c >= 'a' && c <= 'z' )
+          graph->impossible[c - ('a' - 'A')] = false;
+        else if ( c >= 'A' && c <= 'Z' )
+          graph->impossible[c + ('a' - 'A')] = false;
+      }
+    } else if ( c >= DRE2_8BIT && c <= DRE2_ALPHA )
+    {
+      index = c * -1 - 5;
+      i = 0;
+      while ( dre2_predefined_classes[index][i] != -1 )
+      {
+        graph->impossible[dre2_predefined_classes[index][i]] = false;
+        i++;
+      }
+    } else if ( c == DRE2_DOT )
+    {
+      for ( j = 0; j < RANGE; j++ )
+        graph->impossible[j] = false;
+      break;
+    } else if ( c == DRE2_CHAR_CLASS )
+    {
+      for ( j = 0; j < RANGE; j++ )
+      {
+        if ( graph->v[i].possible[j] )
+        {
+          graph->impossible[j] = false;
+          if ( graph->options & DRE2_NO_CASE )
+          {
+            if ( j >= 'a' && j <= 'z' )
+              graph->impossible[j - ( 'a' - 'A' )] = false;
+            if ( j >= 'A' && j <= 'Z' )
+              graph->impossible[j + ( 'a' - 'A' )] = false;
+          }
+        }
+      }
     }
   }
 }
@@ -1647,12 +1772,14 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
   int group;
   struct dre2_node *node;
   int original;
+  int node_opener;
 
   if ( ( *v )[*last_node].c == DRE2_GROUP_CLOSE )
   {
     group = true;
   } else
   {
+    node_opener = *last_node;
     original = *last_node;
     group = false;
   }
@@ -1665,6 +1792,7 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
       dre2_duplicate_node( v, node_count, original, minimal );
       // Set node that was duplicated to be group open.
       ( *v )[*node_count - 2].c = DRE2_GROUP_OPEN;
+      node_opener = *node_count - 2;
       // Add the group close node.
       dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
       // Add link from group open node to actual node.
@@ -1697,6 +1825,7 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
     {
       dre2_duplicate_node( v, node_count, original, minimal );
       *last_node = *node_count - 1;
+      node_opener = *last_node;
     }
   }
 
@@ -1718,7 +1847,9 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
     }
   } else
   {
-    for ( i = min + 1; i <= max; i++ )
+    if ( min == 0 )
+      max--;
+    for ( i = min; i < max; i++ )
     {
       dre2_add_neighbor( v, *last_node, *last_node + 1 );
       if ( group )
@@ -1729,22 +1860,22 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
           dre2_remove_minimal( minimal, j );
       } else
       {
-        // Add a group open node.
-        dre2_add_node( v, node_count, DRE2_GROUP_OPEN, minimal, false );
         // Duplicate the node.
         dre2_duplicate_node( v, node_count, original, minimal );
-        // Add the group close node.
-        dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
-        // Add link from group open node to actual node.
-        dre2_add_neighbor( v, *node_count - 3, *node_count - 2 );
-        // Add link from group open node to group close node.
-        dre2_add_neighbor( v, *node_count - 3, *node_count - 1 );
-        // Add link from actual node to group close node.
-        dre2_add_neighbor( v, *node_count - 2, *node_count - 1 );
+        // Add a link from the last required to here.
+        dre2_add_neighbor( v, node_opener, *node_count - 1 );
+        // Mark it as not minimal.
+        dre2_remove_minimal( minimal, *node_count - 1 );
+        // Update last node.
         *last_node = *node_count - 1;
-        for ( j = *last_node - 2; j <= *last_node; j++ )
-          dre2_remove_minimal( minimal, j );
       }
+    }
+    if ( !group )
+    {
+      dre2_add_neighbor( v, *last_node, *node_count );
+      dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
+      dre2_add_neighbor( v, node_opener, *node_count - 1 );
+      *last_node = *node_count - 1;
     }
   }
 }
@@ -2069,142 +2200,6 @@ struct dre2_parse_return dre2_parse_recursive( struct dre2_node **v, int *node_c
   return ret_val;
 }
 
-// Set the unanchored version of the first/last nodes.
-void dre2_anchorize( struct dre2 *graph, int *minimal, int *minimal_id, int minimal_count )
-{
-  int i, j;
-  int *found_at;
-  int count;
-  int u_count, a_count;
-  int *original, temp;
-  int np_count, *next_nodes;
-  int *unanchored;
-  int *anchored;
-
-  // Set the unanchored neighbor list for the first node.
-  unanchored = NULL;
-  anchored = NULL;
-
-  // Find out where the anchor node was.
-  count = 0;
-  found_at = ( int * )malloc( sizeof( int ) * np_count );
-
-  if ( graph->match_method == DRE2_BOL_ANCHORED )
-  {
-    np_count = graph->v[0].n_count;
-    next_nodes = graph->v[0].n;
-  } else
-  {
-    np_count = graph->v[graph->count - 1].p_count;
-    next_nodes = graph->v[graph->count - 1].p;
-  }
-
-  for ( i = 0; i < np_count; i++ )
-  {
-    if ( graph->match_method == DRE2_BOL_ANCHORED && graph->v[next_nodes[i]].c == DRE2_BOL )
-      found_at[count++] = i;
-    else if ( graph->match_method != DRE2_BOL_ANCHORED && ( graph->v[next_nodes[i]].c == DRE2_EOF || graph->v[next_nodes[i]].c == DRE2_EOL ) )
-      found_at[count++] = i;
-  }
-
-  if ( count <= 0 )
-  {
-    // Failed somewhere, need to fix it.
-  } else 
-  {
-    unanchored = ( int * )malloc( sizeof( int ) * graph->count );
-    anchored = ( int * )malloc( sizeof( int ) * graph->count );
-    u_count = 0;
-    a_count = 0;
-    for ( i = 0; i < np_count; i++ )
-    {
-      // If it wasn't an anchor node, just add it to the unanchored list.
-      if ( !dre2_contains_int( found_at, count, i ) )
-      {
-        if ( graph->match_method == DRE2_BOL_ANCHORED )
-          unanchored[u_count++] = next_nodes[i];
-        else
-          unanchored[u_count++] = next_nodes[i];
-      // Otherwise, add the anchor node's neighbors to the anchored list.
-      } else
-      {
-        if ( graph->match_method == DRE2_BOL_ANCHORED )
-        {
-          for ( j = 0; j < graph->v[next_nodes[i]].n_count; j++ )
-          {
-            if ( !dre2_contains_int( anchored, a_count, graph->v[next_nodes[i]].n[j] ) )
-              anchored[a_count++] = graph->v[next_nodes[i]].n[j];
-          }
-        } else
-        {
-          for ( j = 0; j < graph->v[next_nodes[i]].p_count; j++ )
-          {
-            if ( !dre2_contains_int( anchored, a_count, graph->v[next_nodes[i]].p[j] ) )
-              anchored[a_count++] = graph->v[next_nodes[i]].p[j];
-          }
-        }
-      }
-    }
-
-    // If all of the first reachable nodes are anchored, we won't have to do multiple searches.
-    if ( np_count == count )
-      graph->all_anchored = true;
-
-    // Set the unanchored and anchored counts.
-    if ( graph->match_method == DRE2_BOL_ANCHORED )
-    {
-      graph->v[0].u_count = u_count;
-      graph->v[0].a_count = a_count;
-      graph->v[0].anchored = anchored;
-      graph->v[0].unanchored = unanchored;
-    } else
-    {
-      graph->v[graph->count - 1].u_count = u_count;
-      graph->v[graph->count - 1].a_count = a_count;
-      graph->v[graph->count - 1].anchored = anchored;
-      graph->v[graph->count - 1].unanchored = unanchored;
-    }
-
-    // Calculate the starting point and chars using the unanchored nodes.
-    if ( !graph->all_anchored )
-    {
-      if ( graph->match_method == DRE2_BOL_ANCHORED )
-      {
-        original = graph->v[0].n;
-        temp = graph->v[0].n_count;
-        graph->v[0].n_count = count;
-        graph->v[0].n = unanchored;
-      } else
-      {
-        original = graph->v[graph->count - 1].p;
-        temp = graph->v[graph->count - 1].p_count;
-        graph->v[graph->count - 1].p_count = count;
-        graph->v[graph->count - 1].p = unanchored;
-      }
-
-      graph->starting_point = dre2_starting_point( graph, minimal, minimal_id, minimal_count );
-      dre2_starting_chars( graph, minimal );
-
-      if ( graph->match_method == DRE2_BOL_ANCHORED )
-      {
-        graph->v[0].n = original;
-        graph->v[0].n_count = temp;
-      } else
-      {
-        graph->v[graph->count - 1].p = original;
-        graph->v[graph->count - 1].p_count = temp;
-      }
-    } else
-    {
-      graph->starting_point = 0;
-    }
-  }
-
-  // Cleanup.
-  free( found_at );
-  found_at = NULL;
-}
-
 // Parse function wrapper.
 struct dre2 *dre2_parse( unsigned char *re, int options )
 {
@@ -2279,8 +2274,9 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   // Setup the reverse graph.
   dre2_add_parents( min_graph );
 
-  // Setup the skip table.
+  // Setup the skip table and find impossible chars.
   dre2_skip_table( min_graph );
+  dre2_impossible_chars( min_graph );
 
   // Clean up the original graph's memory if we don't need it.
   if ( !( options & DRE2_SUBMATCH ) )
@@ -2292,47 +2288,9 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
     min_graph->original = graph;
   }
 
-  // Set the match method to be used.
-  min_graph->match_method = -1;
-
-  // First, check if there is a '^', '$', or '\z' in the regex.
-  bol = eol = eof = false;
-  for ( i = 0; i < min_graph->v[0].n_count; i++ )
-  {
-    if ( min_graph->v[min_graph->v[0].n[i]].c == DRE2_BOL )
-    {
-      bol = true;
-      break;
-    }
-  }
-  for ( i = 0; i < min_graph->v[min_graph->count - 1].p_count; i++ )
-  {
-    if ( min_graph->v[min_graph->v[min_graph->count - 1].p[i]].c == DRE2_EOL )
-    {
-      eol = true;
-      break;
-    } else if ( min_graph->v[min_graph->v[min_graph->count - 1].p[i]].c == DRE2_EOF )
-    {
-      eof = true;
-      break;
-    }
-  }
-  if ( eof )
-    min_graph->match_method = DRE2_EOF_ANCHORED;
-  else if ( eol )
-    min_graph->match_method = DRE2_EOL_ANCHORED;
-  else if ( bol )
-    min_graph->match_method = DRE2_BOL_ANCHORED;
-
-  if ( min_graph->match_method >= 0 )
-    dre2_anchorize( min_graph, new_minimal, minimal_id, minimal_count );
-
-  if ( min_graph->match_method == - 1 )
-  {
-    // Find the best starting point and chars.
-    min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
-    dre2_starting_chars( min_graph, new_minimal );
-  }
+  // Find the best starting point and chars.
+  min_graph->starting_point = dre2_starting_point( min_graph, new_minimal, minimal_id, minimal_count );
+  dre2_starting_chars( min_graph, new_minimal );
 
   if ( min_graph->single )
   {
@@ -2345,40 +2303,19 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
 
   if ( min_graph->starting_point == -1 )
   {
-    if ( min_graph->match_method != -1 && !min_graph->all_anchored )
-      min_graph->secondary_method = DRE2_MN;
-    else if ( min_graph->match_method == -1 )
-      min_graph->match_method = DRE2_MN;
+    min_graph->match_method = DRE2_MN;
   } else if ( min_graph->starting_point == 0 || min_graph->starting_point != min_graph->count - 1 )
   {
-    if ( min_graph->match_method == -1 )
-    {
-      if ( min_graph->single )
-        min_graph->match_method = DRE2_SN_SC;
-      else
-        min_graph->match_method = DRE2_SN_MC;
-    } else if ( !min_graph->all_anchored )
-    {
-      if ( min_graph->single )
-        min_graph->secondary_method = DRE2_SN_SC;
-      else
-        min_graph->secondary_method = DRE2_SN_MC;
-    }
+    if ( min_graph->single )
+      min_graph->match_method = DRE2_SN_SC;
+    else
+      min_graph->match_method = DRE2_SN_MC;
   } else
   {
-    if ( min_graph->match_method == -1 )
-    {
-      if ( min_graph->single )
-        min_graph->match_method = DRE2_SN_SC_H;
-      else
-        min_graph->match_method = DRE2_SN_MC_H;
-    } else if ( !min_graph->all_anchored )
-    {
-      if ( min_graph->single )
-        min_graph->secondary_method = DRE2_SN_SC_H;
-      else
-        min_graph->secondary_method = DRE2_SN_MC_H;
-    }
+    if ( min_graph->single )
+      min_graph->match_method = DRE2_SN_SC_H;
+    else
+      min_graph->match_method = DRE2_SN_MC_H;
   }
 
   // Make it case-insensitive.
@@ -2412,6 +2349,12 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
     min_graph->r_temp = ( int * )malloc( sizeof( int ) * min_graph->count );
     min_graph->reachable = ( int * )malloc( sizeof( int ) * min_graph->count );
     min_graph->state = ( int * )calloc( min_graph->count, sizeof( int ) );
+  }
+
+  if ( min_graph->starting_point > 0 && min_graph->starting_point < graph->count - 1 )
+  {
+    if ( min_graph->match_method == DRE2_SN_SC || min_graph->match_method == DRE2_SN_MC )
+      min_graph->initial_skip = dre2_initial_skip( min_graph );
   }
 
   // Cleanup.
