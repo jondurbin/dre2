@@ -1643,35 +1643,50 @@ void dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, 
 // Setup a character range, e.g. a{2,3}
 void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, struct dre2_parse_return *res, int min, int max, int **minimal )
 {
-  int i, j, last;
-  int group = false;
-  int max_position;
+  int i, j;
+  int group;
+  struct dre2_node *node;
+  int original;
 
   if ( ( *v )[*last_node].c == DRE2_GROUP_CLOSE )
   {
-    int length = res->close - res->open + 1;
-    if ( max == DRE2_INFINITE )
-      max_position = *last_node + length + 1;
-    else
-      max_position = *last_node + ( length * ( max - 1 ) ) + 1;
     group = true;
   } else
   {
-    max_position = *last_node + max;
+    original = *last_node;
+    group = false;
   }
 
   if ( min == 0 )
   {
-    if ( ( *v )[*last_node].c == DRE2_GROUP_CLOSE )
+    if ( ( *v )[*last_node].c != DRE2_GROUP_OPEN && ( *v )[*last_node].c != DRE2_GROUP_CLOSE )
     {
-      for ( i = res->open; i <= res->close; i++ )
+      // Duplicate the node.
+      dre2_duplicate_node( v, node_count, original, minimal );
+      // Set node that was duplicated to be group open.
+      ( *v )[*node_count - 2].c = DRE2_GROUP_OPEN;
+      // Add the group close node.
+      dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
+      // Add link from group open node to actual node.
+      dre2_add_neighbor( v, *node_count - 3, *node_count - 2 );
+      // Add link from group open node to group close node.
+      dre2_add_neighbor( v, *node_count - 3, *node_count - 1 );
+      // Add link from actual node to group close node.
+      dre2_add_neighbor( v, *node_count - 2, *node_count - 1 );
+
+      for ( i = *last_node; i < *node_count; i++ )
         dre2_remove_minimal( minimal, i );
+      *last_node = *node_count - 1;
+      original = *node_count - 2;
     } else
     {
-      dre2_remove_minimal( minimal, *last_node );
+      dre2_add_neighbor( v, res->open, res->close );
+      for ( i = res->open; i <= res->close; i++ )
+        dre2_remove_minimal( minimal, i );
     }
   }
 
+  // Make the required minimum range first.
   for ( i = 0; i < min - 1; i++ )
   {
     dre2_add_neighbor( v, *last_node, *last_node + 1 );
@@ -1680,54 +1695,54 @@ void dre2_make_range( struct dre2_node **v, int *node_count, int *last_node, str
       dre2_duplicate_group( v, node_count, last_node, res, minimal );
     } else
     {
-      dre2_duplicate_node( v, node_count, *last_node, minimal );
+      dre2_duplicate_node( v, node_count, original, minimal );
       *last_node = *node_count - 1;
     }
   }
 
+  // If max is min, we're done.
   if ( max == min )
     return;
-
-  if ( min == 0 && group )
-  {
-    for ( i = res->open; i <= res->close; i++ )
-      dre2_remove_minimal( minimal, i );
-    dre2_add_neighbor( v, res->open, res->close );
-  } else if ( min == 0 )
-  {
-    dre2_remove_minimal( minimal, *last_node );
-  }
 
   if ( max == DRE2_INFINITE )
   {
     if ( group )
+    {
       dre2_add_neighbor( v, res->close, res->open );
-    else
-      dre2_add_neighbor( v, *last_node, *last_node );
+    } else
+    {
+      if ( min == 0 )
+        dre2_add_neighbor( v, *last_node, *last_node - 1 );
+      else
+        dre2_add_neighbor( v, *last_node, *last_node );
+    }
   } else
   {
-    int last = *last_node;
-    for ( i = min; i < max; i++ )
+    for ( i = min + 1; i <= max; i++ )
     {
-      if ( !group && i > 0 )
+      dre2_add_neighbor( v, *last_node, *last_node + 1 );
+      if ( group )
       {
-        last = *last_node;
-        dre2_add_node( v, node_count, DRE2_GROUP_OPEN, minimal, false );
-        dre2_duplicate_node( v, node_count, last, minimal );
-        dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
-        dre2_add_neighbor( v, last, last + 1 );
-        dre2_add_neighbor( v, last, *node_count - 1 );
-        dre2_add_neighbor( v, last + 1, *node_count - 1 );
-        *last_node = *node_count - 1;
-        for ( j = last; j < *node_count; j++ )
-          dre2_remove_minimal( minimal, j );
-      } else if ( i > 0 )
-      {
-        last = *last_node;
-        dre2_add_neighbor( v, *last_node, *node_count );
         dre2_duplicate_group( v, node_count, last_node, res, minimal );
         dre2_add_neighbor( v, res->open, res->close );
         for ( j = res->open; j <= res->close; j++ )
+          dre2_remove_minimal( minimal, j );
+      } else
+      {
+        // Add a group open node.
+        dre2_add_node( v, node_count, DRE2_GROUP_OPEN, minimal, false );
+        // Duplicate the node.
+        dre2_duplicate_node( v, node_count, original, minimal );
+        // Add the group close node.
+        dre2_add_node( v, node_count, DRE2_GROUP_CLOSE, minimal, false );
+        // Add link from group open node to actual node.
+        dre2_add_neighbor( v, *node_count - 3, *node_count - 2 );
+        // Add link from group open node to group close node.
+        dre2_add_neighbor( v, *node_count - 3, *node_count - 1 );
+        // Add link from actual node to group close node.
+        dre2_add_neighbor( v, *node_count - 2, *node_count - 1 );
+        *last_node = *node_count - 1;
+        for ( j = *last_node - 2; j <= *last_node; j++ )
           dre2_remove_minimal( minimal, j );
       }
     }
