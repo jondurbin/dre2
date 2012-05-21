@@ -8,6 +8,9 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
   int g_open, g_close;
   unsigned char *tp;
   int *last_state;
+  int assertion, single_match;
+  struct dre2_node *node;
+  int length = strlen( input );
 
   tp = input + pos;
 
@@ -32,12 +35,49 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
   // Match the input character if it's not a group.
   if ( graph->v[id].c != DRE2_GROUP_OPEN && graph->v[id].c != DRE2_GROUP_CLOSE )
   {
-    if ( ( graph->v[id].c == DRE2_EOF && ( ( *tp == ' ' && pos >= strlen( input ) - 1 ) || *tp == '\0' ) ) || dre2_char_matches( graph, &graph->v[id], *tp ) )
+    single_match = false;
+    node = &graph->v[id];
+    switch ( node->c )
     {
-      offset = 1;
+      case DRE2_BOL:
+      case DRE2_EOF:
+      case DRE2_EOL:
+        assertion = true;
+        break;
+      default:
+        assertion = false;
+        break;
+    }
+
+    if ( node->c == DRE2_BOL && pos == 0 )
+    {
+      single_match = true;
+    } else if ( node->c == DRE2_EOL && ( *tp == '\n' || *tp == '\0' ) )
+    {
+      single_match = true;
+    } else if ( node->c == DRE2_EOF && *tp == '\0' )
+    {
+      single_match = true;
+    } else if ( node->c == DRE2_EOF && *tp == '\n' && tp - input + 1 == length )
+    {
+      single_match = true;
+    } else if ( node->c == DRE2_EOF && *tp == ' ' && tp - input + 1 == length - 1 )
+    {
+      single_match = true;
+    } else if ( dre2_char_matches( graph, node, *tp ) )
+    {
+      single_match = true;
+    }
+
+    if ( single_match )
+    {
+      if ( !assertion )
+      {
+        offset = 1;
+        pos++;
+      }
       for ( i = 0; i < graph->count; i++ )
         ( *state )[i] = false;
-      pos++;
     } else
     {
       free( last_state );
