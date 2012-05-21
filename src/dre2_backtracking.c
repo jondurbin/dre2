@@ -19,7 +19,8 @@ int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos,
     return true;
 
   // If we are past the end of input, we can't match, return false.
-  if ( *tp == '\0' && graph->v[id].c != DRE2_GROUP_OPEN && graph->v[id].c != DRE2_GROUP_CLOSE )
+  if ( *tp == '\0' && ( graph->v[id].c != DRE2_GROUP_OPEN && graph->v[id].c != DRE2_GROUP_CLOSE ) &&
+         ( graph->v[id].c != DRE2_EOF && graph->v[id].c != DRE2_EOL && graph->v[id].c != DRE2_BOL ) )
     return false;
 
   // Make sure we haven't already tried this node.
