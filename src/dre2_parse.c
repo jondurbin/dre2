@@ -162,10 +162,11 @@ unsigned char *dre2_escaped( unsigned char *re )
     skip_match = false;
   else
     skip_match = true;
+skip_match = false;
 
   length = strlen( re );
   if ( skip_match )
-    length = length * 3 + 1;
+    length = length * 6 + 1;
   else
     length = length * 2 + 1;
 
@@ -177,6 +178,8 @@ unsigned char *dre2_escaped( unsigned char *re )
   {
     switch ( *ptr )
     {
+      case '^':
+      case '$':
       case '(':
       case ')':
       case '\\':
@@ -655,7 +658,8 @@ void cleanup_dre2( struct dre2 *graph )
   if ( graph->reachable != NULL ) { free( graph->reachable ); graph->reachable = NULL; }
   if ( graph->state != NULL ) { free( graph->state ); graph->state = NULL; }
   if ( graph->original != NULL ) { cleanup_dre2( graph->original ); }
-  free( graph ); graph = NULL;
+  free( graph );
+  graph = NULL;
 }
 
 void dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct dre2_path **paths )
@@ -1481,6 +1485,7 @@ int dre2_initial_skip( struct dre2 *graph )
   int total;
 
   count = 0;
+
   reachable = ( int * )malloc( sizeof( int ) * graph->count );
   r_temp = ( int * )malloc( sizeof( int ) * graph->count );
 
@@ -1511,7 +1516,7 @@ int dre2_initial_skip( struct dre2 *graph )
       }
       for ( j = 0; j < graph->v[reachable[i]].n_count; j++ )
       {
-        if ( graph->v[reachable[i]].n[j] > reachable[i] )
+        if ( graph->v[reachable[i]].n[j] > reachable[i] && !dre2_contains_int( r_temp, c_temp, graph->v[reachable[i]].n[j] ) )
           r_temp[c_temp++] = graph->v[reachable[i]].n[j];
       }
     }
@@ -2283,8 +2288,8 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   // Clean up the original graph's memory if we don't need it.
   if ( !( options & DRE2_SUBMATCH ) )
   {
-    graph->original = NULL;
     cleanup_dre2( graph );
+    min_graph->original = NULL;
   } else
   {
     min_graph->original = graph;
