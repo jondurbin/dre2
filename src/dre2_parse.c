@@ -750,6 +750,7 @@ int dre2_best_choice( struct dre2 *graph, int *required, int count )
 
   ids = ( int * )malloc( sizeof( int ) * count );
   cost = ( int * )malloc( sizeof( int ) * count );
+
   literal = false;
   for ( i = 0; i < count; i++ )
   {
@@ -932,7 +933,7 @@ int dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int 
   if ( path_count == 1 && paths[0].count > 2 )
   {
     required_count = 0;
-    required = ( int * )malloc( sizeof( int ) * required_count );
+    required = ( int * )malloc( sizeof( int ) * graph->count );
     for ( i = 1; i < paths[0].count -1; i++ )
     {
       switch ( graph->v[paths[0].nodes[i]].c )
@@ -946,7 +947,8 @@ int dre2_starting_point( struct dre2 *graph, int *minimal, int *minimal_id, int 
           break;
       }
     }
-    best = dre2_best_choice( graph, required, required_count );
+    if ( required_count > 0 )
+      best = dre2_best_choice( graph, required, required_count );
     goto INITIAL_CLEANUP;
   } else if ( path_count > 1 )
   {
