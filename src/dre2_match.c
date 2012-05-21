@@ -180,6 +180,18 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
       }
     }
 
+    if ( !matched && graph->impossible[*input] )
+    {
+      for ( i = 0; i < graph->v[0].n_count; i++ )
+      {
+        if ( direction == DRE2_LEFT && graph->v[graph->v[0].n[i]].c == DRE2_BOL )
+        {
+          ret.skip_to = length;
+          break;
+        }
+      }
+    }
+
     if ( complete )
     {
       ret.match = input;
@@ -391,8 +403,10 @@ struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, in
     *pch++;
   while ( pch - input <= length && *pch != '\0' )
   {
+
 //printf( "Checking from: %s\n", pch );
 //sleep( 1 );
+
     if ( graph->starting_point == 0 )
     {
       result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable, state );
@@ -424,15 +438,14 @@ struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, in
           return ret_val;
         }
         if ( assertion_match )
-        {
           pch = input + length;
-        } else if( result.skip_to != DRE2_INFINITE )
-        {
+        else if( result.skip_to != DRE2_INFINITE )
           pch = input + result.skip_to;
-        }
       }
       if ( result.assertion_match )
         pch = input + length;
+      if ( result.skip_to != DRE2_INFINITE )
+        pch = input + result.skip_to;
     }
     *pch++;
     while ( pch - input <= length && *pch != 0 && !graph->starting_chars[*pch] )
