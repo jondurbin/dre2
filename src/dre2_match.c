@@ -251,6 +251,8 @@ void dre2_matched_substring( unsigned char *input, struct dre2_match_value *valu
 {
   int size;
 
+  if ( value->start_pos < 0 )
+    value->start_pos = 0;
   size = value->end_pos - value->start_pos;
   if ( size <= 0 )
   {
