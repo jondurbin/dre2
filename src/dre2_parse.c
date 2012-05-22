@@ -152,21 +152,14 @@ const int dre2_predefined_classes[11][256] = {
 };
 
 // Create an escaped string, optionally with skip-matching.
-unsigned char *dre2_escaped( unsigned char *re )
+unsigned char *dre2_escaped( unsigned char *re, int skip_match )
 {
   unsigned char *buffer, *escaped, *ptr;
   int length;
-  int skip_match;
-
-  if ( *re == '!' )
-    skip_match = false;
-  else
-    skip_match = true;
-skip_match = false;
 
   length = strlen( re );
   if ( skip_match )
-    length = length * 6 + 1;
+    length = length * 4 + 1;
   else
     length = length * 2 + 1;
 
