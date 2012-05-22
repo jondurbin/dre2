@@ -155,7 +155,7 @@ struct dre2
   int initial_skip;              // When we're starting from a single node, how many characters we can skip right away.
 };
 
-unsigned char *dre2_escaped( unsigned char *re );
+unsigned char *dre2_escaped( unsigned char *re, int skip_match );
 int dre2_binsearch( int *values, int min, int max, int key );
 int dre2_largest( int *values, int length );
 int dre2_contains_int( int *values, int length, int key );
