@@ -1558,11 +1558,11 @@ void dre2_impossible_chars( struct dre2 *graph )
     } else if ( c >= DRE2_8BIT && c <= DRE2_ALPHA )
     {
       index = c * -1 - 5;
-      i = 0;
-      while ( dre2_predefined_classes[index][i] != -1 )
+      j = 0;
+      while ( dre2_predefined_classes[index][j] != -1 )
       {
-        graph->impossible[dre2_predefined_classes[index][i]] = false;
-        i++;
+        graph->impossible[dre2_predefined_classes[index][j]] = false;
+        j++;
       }
     } else if ( c == DRE2_DOT )
     {
