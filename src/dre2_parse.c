@@ -655,11 +655,27 @@ void cleanup_dre2( struct dre2 *graph )
   graph = NULL;
 }
 
-void dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct dre2_path **paths )
+int dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct dre2_path **paths )
 {
   int i, j;
   int size, last;
   struct dre2_path *path, *next_path;
+
+  if ( *path_count >= 1024 )
+  {
+    for ( i = 0; i < *path_count; i++ )
+    {
+      if ( ( *paths )[i].nodes != NULL )
+      {
+        free( ( *paths )[i].nodes );
+        ( *paths )[i].nodes = NULL;
+      }
+    }
+    free( *paths );
+    *paths = NULL;
+    *path_count = 0;
+    return false;
+  }
 
   size = ( *paths )[id].count;
   last = ( *paths )[id].nodes[( *paths )[id].count - 1];
@@ -672,7 +688,8 @@ void dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, str
       // For the first possible node, just add it to the current path.
       ( *paths )[id].count++;
       ( *paths )[id].nodes[( *paths )[id].count - 1] = graph->v[last].min_n[i];
-      dre2_find_paths_recursive( graph, id, path_count, paths );
+      if ( dre2_find_paths_recursive( graph, id, path_count, paths ) == false )
+        return false;
     } else
     {
       // For the other nodes, split the path.
@@ -686,9 +703,11 @@ void dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, str
       for ( j = 0; j < size; j++ )
         next_path->nodes[j] = ( *paths )[id].nodes[j];
       next_path->nodes[size] = graph->v[last].min_n[i];
-      dre2_find_paths_recursive( graph, *path_count - 1, path_count, paths );
+      if ( dre2_find_paths_recursive( graph, *path_count - 1, path_count, paths ) == false )
+        return false;
     }
   }
+  return true;
 }
 
 // Frequency/cost of a single node.

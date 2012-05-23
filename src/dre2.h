@@ -166,7 +166,7 @@ int string_to_int( unsigned char *s );
 struct dre2_range_return dre2_range( unsigned char *re, int length, int pos );
 void cleanup_nodes( struct dre2_node **v, int node_count );
 void cleanup_dre2( struct dre2 *graph );
-void dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct dre2_path **paths );
+int dre2_find_paths_recursive( struct dre2 *graph, int id, int *path_count, struct dre2_path **paths );
 int dre2_node_cost( struct dre2 *graph, int id );
 int dre2_best_choice( struct dre2 *graph, int *required, int count );
 void dre2_set_chars( struct dre2 *graph, int id );
