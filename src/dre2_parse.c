@@ -1,5 +1,3 @@
-#include "dre2.h"
-
 // Frequency analysis ranking.
 const int dre2_frequency[RANGE] = {
    0,   1,  69, 136, 139, 140, 141, 142,
@@ -1780,6 +1778,7 @@ void dre2_duplicate_group( struct dre2_node **v, int *node_count, int *last_node
 void dre2_duplicate_node( struct dre2_node **v, int *node_count, int last_node, int **minimal )
 {
   dre2_add_node( v, node_count, ( *v )[last_node].c, minimal, false );
+  ( *v )[*node_count - 1].group_id = ( *v )[last_node].group_id;
   if ( ( *v )[last_node].c == DRE2_CHAR_CLASS )
     memcpy( ( *v )[*node_count - 1].possible, ( *v )[last_node].possible, RANGE * sizeof( int ) );
 }
@@ -2237,9 +2236,7 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   min_graph = ( struct dre2 * )malloc( sizeof( struct dre2 ) );
 
   // Make sure options are set correctly.
-  if ( options & DRE2_FULL_MATCH )
-    options = options | DRE2_GREEDY;
-  if ( options & DRE2_SUBMATCH )
+  if ( options & DRE2_FULL_MATCH || options & DRE2_SUBMATCH )
     options = options | DRE2_GREEDY;
 
   // Call the recursive parse function.
@@ -2374,6 +2371,20 @@ struct dre2 *dre2_parse( unsigned char *re, int options )
   {
     if ( min_graph->match_method == DRE2_SN_SC || min_graph->match_method == DRE2_SN_MC )
       min_graph->initial_skip = dre2_initial_skip( min_graph );
+  }
+
+  min_graph->has_loop = false;
+  for ( i = 0; i < min_graph->count; i++ )
+  {
+    for ( j = 0; j < min_graph->v[i].n_count; j++ )
+    {
+      if ( min_graph->v[i].n[j] <= i )
+      {
+        min_graph->has_loop = true;
+        i = min_graph->count;
+        break;
+      }
+    }
   }
 
   // Cleanup.

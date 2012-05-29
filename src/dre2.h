@@ -66,7 +66,6 @@ DRE2_OPTION
 #endif
 
 struct dre2_single_match {
-  int active_states;             // Number of active states when the match succeeded.
   int assertion_match;           // True/False flag indicating if we matched an assertion.
   int assertion_fail;            // True/False flag indicating if we failed on an assertion.
   int skip_to;                   // Position we can automatically skip to if we fail (based on impossible characters).
@@ -76,7 +75,7 @@ struct dre2_single_match {
 struct dre2_match_value
 {
   int matched;                   // True/False flag indicating if the string matched.
-  int can_continue;              // True/False flag indicating if there were multiple states still active upon matching.
+  int can_continue;              // True/False flag indicating if we can expand the match.
   int start_pos;                 // Index of first character of substring that matched.
   int end_pos;                   // Index of last character of substring that matched.
 };
@@ -153,6 +152,7 @@ struct dre2
   int group_count;               // Number of groups in the regex.
   int impossible[RANGE];         // Characters that are impossible to find in the regex.
   int initial_skip;              // When we're starting from a single node, how many characters we can skip right away.
+  int has_loop;                  // Whether or not this regex has a loop, e.g. a+b or (abc)+.
 };
 
 unsigned char *dre2_escaped( unsigned char *re, int skip_match );

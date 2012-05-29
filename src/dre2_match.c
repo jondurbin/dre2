@@ -1,5 +1,3 @@
-#include "dre2.h"
-
 // Match a single node.
 int dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char c )
 {
@@ -76,17 +74,16 @@ int dre2_char_matches( struct dre2 *graph, struct dre2_node *node, unsigned char
 struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_ptr, unsigned char *input, int start, int direction, int length, int *r_temp, int *reachable, int *state )
 {
   int i, j, k;
-  int *swapper, *next_nodes;
+  int *swapper, *next_nodes, *previous_nodes;
   int iter, l_iter;
   int matched, single_match;
   int r;
-  int count;
+  int count, previous_count;
   int found, complete, assertion, assertion_match;
   struct dre2_node *node;
   struct dre2_single_match ret;
 
   ret.match = NULL;
-  ret.active_states = 0;
   ret.skip_to = DRE2_INFINITE;
   ret.assertion_match = false;
 
@@ -196,7 +193,7 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
     {
       ret.match = input;
       ret.assertion_match = assertion_match;
-      if ( !graph->options & DRE2_GREEDY )
+      if ( !( graph->options & DRE2_GREEDY ) )
       {
         for ( i = 0; i < iter; i++ )
           state[r_temp[i]] = false;
@@ -225,24 +222,8 @@ struct dre2_single_match dre2_matcher( struct dre2 *graph, unsigned char *begin_
 
     // If none of the active states matched, the regex failed to match.
     if ( matched == false )
-      goto SINGLE_MATCH_FINISH;
+      return ret;
   }
-
-  SINGLE_MATCH_FINISH:
-  if ( graph->options & DRE2_GREEDY )
-  {
-    if ( ret.match != NULL )
-    {
-      ret.active_states = 0;
-      for ( i = 0; i < l_iter; i++ )
-      {
-        node = &graph->v[reachable[i]];
-        if ( ret.match - begin_ptr >= 0 && ( ( node->c == DRE2_BOL && input - begin_ptr == 0 ) || ( node->c == DRE2_EOL || node->c == DRE2_EOF && ( ( *input == ' ' && input - begin_ptr + 1 == length - 1 ) || *input == '\0' ) ) || dre2_char_matches( graph, node, *input ) ) )
-          ret.active_states++;
-      }
-    }
-  }
-
   return ret;
 }
 
@@ -284,7 +265,7 @@ struct dre2_match_value dre2_sn_sc_horspool( struct dre2 *graph, unsigned char *
     result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_LEFT, length, r_temp, reachable, state );
     if ( result.match != NULL )
     {
-      ret_val.can_continue = result.active_states > 0 ? true : false;
+      ret_val.can_continue = graph->has_loop;
       ret_val.matched = true;
       ret_val.start_pos = result.match - input;
       ret_val.end_pos = pch - input + 1;
@@ -316,7 +297,6 @@ struct dre2_match_value dre2_sn_sc( struct dre2 *graph, unsigned char *input, in
       result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable, state );
       if ( result.match != NULL )
       {
-        ret_val.can_continue = result.active_states > 0 ? true : false;
         ret_val.matched = true;
         ret_val.start_pos = pch - input;
         ret_val.end_pos = result.match - input + 1;
@@ -330,13 +310,9 @@ struct dre2_match_value dre2_sn_sc( struct dre2 *graph, unsigned char *input, in
       if ( result.match != NULL )
       {
         ret_val.start_pos = result.match - input;
-        ret_val.can_continue = result.active_states > 0 ? true : false;
         result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable, state );
         if ( result.match != NULL )
         {
-          if ( !ret_val.can_continue )
-            ret_val.can_continue = result.active_states > 0 ? true : false;
-          ret_val.can_continue = result.active_states > 0 ? true : false;
           ret_val.matched = true;
           ret_val.end_pos = result.match - input + 1;
           return ret_val;
@@ -372,7 +348,6 @@ struct dre2_match_value dre2_sn_mc_horspool( struct dre2 *graph, unsigned char *
     result = dre2_matcher( graph, input, pch, graph->count - 1, DRE2_LEFT, length, r_temp, reachable, state );
     if ( result.match != NULL )
     {
-      ret_val.can_continue = result.active_states > 0 ? true : false;
       ret_val.matched = true;
       ret_val.start_pos = result.match - input;
       ret_val.end_pos = pch - input + 1;
@@ -405,16 +380,11 @@ struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, in
     *pch++;
   while ( pch - input <= length && *pch != '\0' )
   {
-
-//printf( "Checking from: %s\n", pch );
-//sleep( 1 );
-
     if ( graph->starting_point == 0 )
     {
       result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable, state );
       if ( result.match != NULL )
       {
-        ret_val.can_continue = result.active_states > 0 ? true : false;
         ret_val.matched = true;
         ret_val.start_pos = pch - input;
         ret_val.end_pos = result.match - input + 1;
@@ -428,13 +398,10 @@ struct dre2_match_value dre2_sn_mc( struct dre2 *graph, unsigned char *input, in
       if ( result.match != NULL )
       {
         assertion_match = result.assertion_match;
-        ret_val.can_continue = result.active_states > 0 ? true : false;
         ret_val.start_pos = result.match - input;
         result = dre2_matcher( graph, input, pch, graph->starting_point, DRE2_RIGHT, length, r_temp, reachable, state );
         if ( result.match != NULL )
         {
-          if ( !ret_val.can_continue )
-            ret_val.can_continue = result.active_states > 0 ? true : false;
           ret_val.matched = true;
           ret_val.end_pos = result.match - input + 1;
           return ret_val;
@@ -476,14 +443,10 @@ struct dre2_match_value dre2_mn( struct dre2 *graph, unsigned char *input, int l
       result = dre2_matcher( graph, input, pch, graph->starting_points[i], DRE2_LEFT, length, r_temp, reachable, state );
       if ( result.match != NULL )
       {
-        ret_val.can_continue = result.active_states > 0 ? true : false;
         ret_val.start_pos = result.match - input;
         result = dre2_matcher( graph, input, pch, graph->starting_points[i], DRE2_RIGHT, length, r_temp, reachable, state );
         if ( result.match != NULL )
         {
-          if ( !ret_val.can_continue )
-            ret_val.can_continue = result.active_states > 0 ? true : false;
-          ret_val.can_continue = result.active_states > 0 ? true : false;
           ret_val.matched = true;
           ret_val.end_pos = result.match - input + 1; 
           return ret_val;
@@ -523,7 +486,6 @@ struct dre2_match_value dre2_full_match( struct dre2 *graph, unsigned char *inpu
       ret_val.matched = true;
     if ( result.match - input == length - 2 && ( input[length - 2] == '\r' && input[length - 1] == '\n' ) )
       ret_val.matched = true;
-    ret_val.can_continue = result.active_states > 0 ? true : false;
   }
   return ret_val;
 }
@@ -596,7 +558,7 @@ struct dre2_match_value dre2_match( struct dre2 *graph, unsigned char *input )
     }
   }
 
-  if ( result.matched && ( graph->options & DRE2_GREEDY ) && result.can_continue )
+  if ( result.matched && ( graph->options & DRE2_GREEDY ) && graph->has_loop )
     result = dre2_expanded_match( graph, input, length, r_temp, reachable, state, &result );
 
   if ( ( graph->options & DRE2_THREAD_SAFE ) || graph->count >= RANGE )
