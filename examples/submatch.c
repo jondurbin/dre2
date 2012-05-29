@@ -1,4 +1,4 @@
-#include "../src/dre2.h"
+#include <dre2.h>
 
 int main( int argc, char *argv[] )
 {
