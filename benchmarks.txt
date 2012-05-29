@@ -73,7 +73,7 @@ Regex: Tom|Sawyer|Huckleberry|Finn
 -------------------------------------------------
 
 
-Regex: 0.{0,3}(Tom|Sawyer|Huckleberry|Finn)
+Regex: .{0,3}(Tom|Sawyer|Huckleberry|Finn)
 =================================================
    Program |    Matched |       Time
 =================================================
