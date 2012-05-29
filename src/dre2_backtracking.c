@@ -1,5 +1,3 @@
-#include "dre2.h"
-
 // Recursive backtracking function - also sets group open/close positions.
 int dre2_backtrack_recursive( struct dre2 *graph, unsigned char *input, int pos, int id, int **state, int **group_open, int **group_close )
 {
