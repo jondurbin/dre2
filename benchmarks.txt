@@ -1,7 +1,7 @@
 Notes:
 64-bit Intel Core i5-2400 @ 3.10GHz
 8GB DDR3 RAM @1333 MHz
-Test file (mtent12.txt): 379897 lines, 19285324 bytes (10 MB)
+Test file (mtent12.txt): 379897 lines, 19285324 bytes (19 MB)
 
 Regex: Twain
 =================================================
