@@ -813,12 +813,28 @@ void dre2_set_chars( struct dre2 *graph, int id )
   if ( node->c >= 0 )
   {
     graph->starting_chars[node->c] = true;
+    if ( graph->options & DRE2_NO_CASE )
+    {
+      if ( node->c >= 'a' && node->c <= 'z' )
+        graph->starting_chars[node->c - ( 'a' - 'A' )] = true;
+      else if ( node->c >= 'A' && node->c <= 'Z' )
+        graph->starting_chars[node->c + ( 'a' - 'A' )] = true;
+    }
   } else if ( node->c == DRE2_CHAR_CLASS )
   {
     for ( i = 0; i < RANGE; i++ )
     {
       if ( node->possible[i] )
+      {
         graph->starting_chars[i] = true;
+        if ( graph->options & DRE2_NO_CASE )
+        {
+          if ( i >= 'a' && i <= 'z' )
+            graph->starting_chars[i - ( 'a' - 'A' )] = true;
+          else if ( i >= 'A' && i <= 'Z' )
+            graph->starting_chars[i + ( 'a' - 'A' )] = true;
+        }
+      }
     }
   } else if ( node->c == DRE2_DOT )
   {
@@ -831,6 +847,13 @@ void dre2_set_chars( struct dre2 *graph, int id )
     while ( dre2_predefined_classes[index][i] != -1 )
     {
       graph->starting_chars[dre2_predefined_classes[index][i]] = true;
+      if ( graph->options & DRE2_NO_CASE )
+      {
+        if ( dre2_predefined_classes[index][i] >= 'a' && dre2_predefined_classes[index][i] <= 'z' )
+          graph->starting_chars[dre2_predefined_classes[index][i] - ( 'a' - 'A' )] = true;
+        else if ( dre2_predefined_classes[index][i] >= 'A' && dre2_predefined_classes[index][i] <= 'Z' )
+          graph->starting_chars[dre2_predefined_classes[index][i] + ( 'a' - 'A' )] = true;
+      }
       i++;
     }
   }
