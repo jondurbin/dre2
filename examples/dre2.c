@@ -49,7 +49,7 @@ int main( int argc, char *argv[] )
   }
 
   // Parse the regex string into the dre2 object.
-  re = dre2_parse( ( unsigned char * )argv[1], options );
+  re = dre2_parse( ( unsigned char * )argv[re_arg], options );
 
   // Make sure parsing was successful.
   if ( re == NULL )
@@ -82,5 +82,6 @@ int main( int argc, char *argv[] )
   // Cleanup memory.
   cleanup_dre2( re );
   free( buf ); buf = NULL;
+  free( match ); match = NULL;
   return 0;
 }
