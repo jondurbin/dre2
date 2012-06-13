@@ -9,7 +9,7 @@ install:
 
 clean:
 	rm -f obj/*
-	rm -f dre2 dre2_submatch
+	rm -f dre2_match dre2_submatch
 
 test:
 	gcc -o dre2_match examples/match.c -ldre2 -O3
