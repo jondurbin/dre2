@@ -1,4 +1,6 @@
-#dre2 - An extremely fast, lightweight regex engine written in c.
+## dre2 - An extremely fast, lightweight regex engine written in c
+
+This is an ancient project I did during my master's degree so don't judge too harshly.
 
 ## DRE2 options:
 ### Thread-safe - MUST be used in any multi-threaded application.
